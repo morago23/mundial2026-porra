@@ -10,19 +10,23 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="navbar">
+    <nav className={`navbar ${menuOpen ? "open" : ""}`}>
       <div className="container">
         <div className="navbar-inner">
-          <Link href="/" className="navbar-logo">
+          <Link href="/" className="navbar-logo" onClick={() => setMenuOpen(false)}>
             <span className="trophy">🏆</span>
             <span>Porra Mundial 2026</span>
           </Link>
 
           <ul className="navbar-nav">
-            <li><Link href="/#resultados">Resultados</Link></li>
-            <li><Link href="/#grupos">Grupos</Link></li>
-            <li><Link href="/crear-porra">Crear Porra</Link></li>
+            <li><Link href="/#resultados" onClick={() => setMenuOpen(false)}>Resultados</Link></li>
+            <li><Link href="/#grupos" onClick={() => setMenuOpen(false)}>Grupos</Link></li>
+            <li><Link href="/crear-porra" onClick={() => setMenuOpen(false)}>Crear Porra</Link></li>
           </ul>
+
+          <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>
+            {menuOpen ? "✕" : "☰"}
+          </button>
 
           <div className="auth-user">
             {loading ? null : user ? (

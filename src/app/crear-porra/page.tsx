@@ -206,7 +206,7 @@ export default function CrearPorraPage() {
       {/* ── Step 2: Equipos ─────────────────────────────────────── */}
       {step === 2 && (
         <div className="animate-in">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: "32px", alignItems: "start" }}>
+          <div className="layout-bet">
             <div>
               <div style={{ marginBottom: "24px" }}>
                 <h2 style={{ marginBottom: "8px" }}>Elige tus 10 equipos</h2>

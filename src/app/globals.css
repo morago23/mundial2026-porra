@@ -1044,3 +1044,122 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
 .empty-state-icon { font-size: 3rem; margin-bottom: var(--space-4); }
 .empty-state-title { font-size: 1.2rem; font-weight: 600; color: var(--text-secondary); margin-bottom: var(--space-2); }
+
+/* ── UI V2 & Mobile Improvements ─────────────────────────── */
+
+.layout-bet {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout-bet {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+  
+  /* Make BudgetMeter sticky at bottom on mobile */
+  .budget-meter-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    background: rgba(8, 12, 26, 0.95);
+    backdrop-filter: blur(15px);
+    border-top: 1px solid var(--border-gold);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+    padding: var(--space-4);
+    transform: translateY(calc(100% - 70px));
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .budget-meter-container.expanded {
+    transform: translateY(0);
+  }
+  
+  .budget-meter-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 40px;
+    cursor: pointer;
+  }
+}
+
+@media (min-width: 901px) {
+  .budget-meter-toggle { display: none; }
+  .budget-meter-container {
+    position: sticky;
+    top: 90px;
+  }
+}
+
+/* ── Mobile Hamburger Menu ───────────────────────────────── */
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: block;
+  }
+  
+  .navbar-nav {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 70px;
+    left: 0;
+    right: 0;
+    background: rgba(8, 12, 26, 0.98);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: var(--space-6);
+    gap: var(--space-4);
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .navbar.open .navbar-nav {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  .auth-user {
+    display: none;
+  }
+  
+  .navbar.open .auth-user {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: calc(70px + 160px);
+    left: 0;
+    right: 0;
+    padding: var(--space-4) var(--space-6);
+    background: rgba(8, 12, 26, 0.98);
+    border-bottom: 1px solid var(--border);
+    animation: fadeIn 0.3s ease forwards;
+  }
+}
+
+/* ── Responsive Tables ───────────────────────────────────── */
+@media (max-width: 768px) {
+  .table-wrapper, .group-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: inset -10px 0 10px -10px rgba(0,0,0,0.5);
+  }
+}

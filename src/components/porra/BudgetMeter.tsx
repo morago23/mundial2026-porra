@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { calcTotalValue } from "@/lib/data/teams";
 import { TEAMS_BY_CODE } from "@/lib/data/teams";
 import { MAX_BUDGET } from "@/lib/data/teams";
@@ -9,13 +10,24 @@ interface BudgetMeterProps {
 }
 
 export default function BudgetMeter({ selectedTeams }: BudgetMeterProps) {
+  const [expanded, setExpanded] = useState(false);
   const total = calcTotalValue(selectedTeams);
   const pct = Math.min((total / MAX_BUDGET) * 100, 100);
   const isDanger = total > MAX_BUDGET;
 
   return (
-    <div className="budget-meter">
-      <div className="budget-title">Presupuesto</div>
+    <div className={`budget-meter-container ${expanded ? "expanded" : ""}`}>
+      <div className="budget-meter-toggle" onClick={() => setExpanded(!expanded)}>
+        <span style={{ fontWeight: 600, color: "var(--gold)" }}>
+          Presupuesto: {total.toFixed(1)} / {MAX_BUDGET}
+        </span>
+        <span style={{ color: "var(--text-muted)" }}>
+          {expanded ? "▼ Ocultar" : "▲ Ver equipos"}
+        </span>
+      </div>
+
+      <div className="budget-meter">
+        <div className="budget-title" style={{ display: "none" }}>Presupuesto</div>
 
       <div className="budget-numbers">
         <span className="budget-used" style={{ color: isDanger ? "var(--red)" : "var(--gold)" }}>
@@ -55,11 +67,12 @@ export default function BudgetMeter({ selectedTeams }: BudgetMeterProps) {
         </div>
       )}
 
-      {selectedTeams.length === 0 && (
-        <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.85rem", padding: "12px 0" }}>
-          Selecciona tus 10 equipos
-        </div>
-      )}
+        {selectedTeams.length === 0 && (
+          <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.85rem", padding: "12px 0" }}>
+            Selecciona tus 10 equipos
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -161,7 +161,7 @@ export default function ApostarPage() {
         <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: "24px" }}>
           Presupuesto máximo: <strong style={{ color: "var(--gold)" }}>115 puntos</strong>
         </p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: "32px", alignItems: "start" }}>
+        <div className="layout-bet">
           <TeamSelector selected={selectedTeams} onChange={setSelectedTeams} />
           <BudgetMeter selectedTeams={selectedTeams} />
         </div>
