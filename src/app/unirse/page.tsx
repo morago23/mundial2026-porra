@@ -36,11 +36,10 @@ export default function UnirsePage() {
           <form onSubmit={handleJoin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <input
               type="text"
-              className="form-input"
-              placeholder="Ej: l0vK12mA..."
+              className="form-input code-input"
+              placeholder="EJ: XJ9K2L..."
               value={codigo}
               onChange={(e) => setCodigo(e.target.value)}
-              style={{ fontSize: "1.2rem", textAlign: "center", padding: "16px", letterSpacing: "2px" }}
               required
             />
             <button type="submit" className="btn btn-primary btn-lg" style={{ width: "100%", justifyContent: "center" }}>

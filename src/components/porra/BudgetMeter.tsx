@@ -16,7 +16,7 @@ export default function BudgetMeter({ selectedTeams }: BudgetMeterProps) {
   const isDanger = total > MAX_BUDGET;
 
   return (
-    <div className={`budget-meter-container ${expanded ? "expanded" : ""}`}>
+    <div className={`budget-meter-container sticky-budget ${expanded ? "expanded" : ""}`}>
       <div className="budget-meter-toggle" onClick={() => setExpanded(!expanded)}>
         <span style={{ fontWeight: 600, color: "var(--gold)" }}>
           Presupuesto: {total.toFixed(1)} / {MAX_BUDGET}
