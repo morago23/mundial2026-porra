@@ -13,10 +13,10 @@ export default function MatchCard({ match }: MatchCardProps) {
 
   const statusClass =
     match.status === "LIVE" || match.status === "in_play"
-      ? "live"
+      ? "status-live"
       : match.status === "FINISHED" || match.status === "FT"
-      ? "finished"
-      : "scheduled";
+      ? "status-finished"
+      : "status-scheduled";
 
   const statusLabel =
     match.status === "LIVE" || match.status === "in_play"
@@ -33,19 +33,19 @@ export default function MatchCard({ match }: MatchCardProps) {
       {/* Home team */}
       <div className="match-team home">
         <span className="match-flag">{homeTeam.flag}</span>
-        <span className="match-team-name">{homeTeam.name}</span>
+        <span className="match-name">{homeTeam.name}</span>
       </div>
 
       {/* Score / time */}
       <div className="match-score">
         {hasScore ? (
-          <div className="score-display">
+          <div className="score-numbers">
             <span>{match.homeScore}</span>
-            <span className="score-separator">-</span>
+            <span className="score-divider">-</span>
             <span>{match.awayScore}</span>
           </div>
         ) : (
-          <div className="score-display" style={{ fontSize: "1rem", color: "var(--text-muted)" }}>
+          <div className="score-numbers" style={{ fontSize: "1.5rem", color: "var(--text-muted)" }}>
             vs
           </div>
         )}
@@ -55,7 +55,7 @@ export default function MatchCard({ match }: MatchCardProps) {
       {/* Away team */}
       <div className="match-team away">
         <span className="match-flag">{awayTeam.flag}</span>
-        <span className="match-team-name">{awayTeam.name}</span>
+        <span className="match-name">{awayTeam.name}</span>
       </div>
     </div>
   );
