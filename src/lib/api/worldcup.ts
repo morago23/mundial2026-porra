@@ -73,17 +73,10 @@ export async function fetchMatches(): Promise<WCMatch[]> {
   if (cached) return cached;
 
   try {
-    const [liveRes, fixturesRes] = await Promise.all([
-      fetchAPI("/livescores"),
-      fetchAPI("/fixtures"),
-    ]);
+    const response = await fetchAPI("/tournaments/2026/matches");
 
-    // Format matches from the 'data' payload
-    const liveData = liveRes.data || [];
-    const fixturesData = fixturesRes.data || [];
-
-    // Safely combine and map. (Assuming API returns home_team/away_team or similar standard format)
-    const rawMatches = [...liveData, ...fixturesData];
+    // Format matches from the payload
+    const rawMatches = response.data || response.matches || (Array.isArray(response) ? response : []);
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const matches: WCMatch[] = rawMatches.map((m: any) => ({
@@ -120,8 +113,8 @@ export async function fetchGroups(): Promise<WCGroup[]> {
   if (cached) return cached;
 
   try {
-    const data = await fetchAPI("/standings");
-    // Assuming data.data is the array of groups
+    const data = await fetchAPI("/tournaments/2026/standings");
+    // Assuming data.data or data.groups or data is the array of groups
     let groups: WCGroup[] = [];
     
     if (data.data && Array.isArray(data.data)) {
