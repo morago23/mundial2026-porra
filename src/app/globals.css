@@ -584,3 +584,90 @@ h1, h2, h3, h4 {
 @media (max-width: 768px) {
   .hero-title { font-size: 2.8rem; }
 }
+
+/* ── League Standings (Clasificación) ── */
+.standings-row {
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-glass);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.standings-row:hover {
+  background: var(--bg-glass-solid) !important;
+  transform: translateX(4px);
+}
+
+.standings-row:last-child {
+  border-bottom: none;
+}
+
+.standings-rank {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  width: 48px;
+  text-align: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.standings-rank.rank-1 { color: #f59e0b; font-size: 2rem; text-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+.standings-rank.rank-2 { color: #94a3b8; font-size: 1.8rem; }
+.standings-rank.rank-3 { color: #b45309; font-size: 1.6rem; }
+
+.standings-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-glass);
+  margin: 0 16px;
+  flex-shrink: 0;
+}
+
+.standings-avatar-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--gradient-gold);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin: 0 16px;
+  flex-shrink: 0;
+}
+
+.standings-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.standings-teams {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.standings-team-flag {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.standings-points {
+  margin-left: auto;
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--gold);
+  display: flex;
+  align-items: baseline;
+}
