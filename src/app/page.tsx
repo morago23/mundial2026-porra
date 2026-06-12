@@ -52,52 +52,41 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* ─── Hero ─────────────────────────────────────────────────── */}
-      <section className="hero">
+      {/* ─── Hero (Direct to Action) ──────────────────────────────── */}
+      <section className="hero" style={{ padding: "40px 0" }}>
         <div className="container">
-          <div className="hero-eyebrow">
-            <span>⚽</span>
-            <span>FIFA World Cup 2026</span>
+          <div className="hero-eyebrow" style={{ marginBottom: "16px", display: "inline-block", padding: "8px 16px", background: "var(--bg-card)", borderRadius: "99px", fontSize: "0.9rem", fontWeight: 700, border: "1px solid var(--border-glass)" }}>
+            <span>⚽ FIFA World Cup 2026</span>
           </div>
 
-          <h1 className="hero-title">
-            La <span className="gold-text">Porra</span> del Mundial
+          <h1 className="hero-title" style={{ fontSize: "3rem", marginBottom: "40px" }}>
+            La <span className="gold-text">Porra</span> Definitiva
           </h1>
 
-          <p className="hero-subtitle">
-            Selecciona tus 10 selecciones con presupuesto ≤ 115 puntos,
-            predice los premios y compite con tus amigos.
-          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px", maxWidth: "800px", margin: "0 auto 40px" }}>
+            {/* Create Card */}
+            <div className="card" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "40px 24px", background: "radial-gradient(ellipse at top, rgba(245, 158, 11, 0.1) 0%, transparent 70%), var(--bg-card)" }}>
+              <div style={{ fontSize: "3rem", marginBottom: "16px" }}>🏆</div>
+              <h3 style={{ fontSize: "1.5rem", marginBottom: "8px" }}>Crear una Liga</h3>
+              <p style={{ color: "var(--text-secondary)", marginBottom: "24px", fontSize: "0.95rem" }}>
+                Conviértete en administrador, configura tu porra y reta a tus amigos.
+              </p>
+              <Link href="/crear-porra" className="btn btn-primary btn-lg" style={{ width: "100%", justifyContent: "center" }}>
+                Empezar nueva liga
+              </Link>
+            </div>
 
-          <div className="hero-actions">
-            <Link href="/crear-porra" className="btn btn-primary btn-lg">
-              🏆 Crear mi Porra
-            </Link>
-            <button
-              className="btn btn-secondary btn-lg"
-              onClick={() => {
-                document.getElementById("resultados-section")?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              📊 Ver Resultados
-            </button>
-          </div>
-
-          {/* Stats row */}
-          <div style={{ display: "flex", justifyContent: "center", gap: "48px", marginTop: "48px", flexWrap: "wrap" }}>
-            {[
-              { value: "48", label: "Selecciones" },
-              { value: "104", label: "Partidos" },
-              { value: "12", label: "Grupos" },
-              { value: "115", label: "Presupuesto máx." },
-            ].map(({ value, label }) => (
-              <div key={label} style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "2.5rem", fontWeight: 800, background: "var(--gradient-gold)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                  {value}
-                </div>
-                <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</div>
-              </div>
-            ))}
+            {/* Join Card */}
+            <div className="card" style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "40px 24px", background: "radial-gradient(ellipse at top, rgba(59, 130, 246, 0.1) 0%, transparent 70%), var(--bg-card)" }}>
+              <div style={{ fontSize: "3rem", marginBottom: "16px" }}>🤝</div>
+              <h3 style={{ fontSize: "1.5rem", marginBottom: "8px" }}>Unirse con Código</h3>
+              <p style={{ color: "var(--text-secondary)", marginBottom: "24px", fontSize: "0.95rem" }}>
+                ¿Tienes un código de invitación? Entra directo a competir.
+              </p>
+              <Link href="/unirse" className="btn btn-secondary btn-lg" style={{ width: "100%", justifyContent: "center", border: "2px solid var(--border-glass)" }}>
+                Tengo un código
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -194,29 +183,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── CTA Crear Porra ──────────────────────────────────────── */}
-      <section className="section">
-        <div className="container">
-          <div
-            className="card card-gold"
-            style={{ textAlign: "center", padding: "64px 32px", background: "radial-gradient(ellipse at center, rgba(201,162,39,0.12) 0%, rgba(8,12,26,0) 70%)" }}
-          >
-            <div style={{ fontSize: "4rem", marginBottom: "16px" }}>🏆</div>
-            <h2 style={{ marginBottom: "12px" }}>¿Listo para la porra?</h2>
-            <p style={{ color: "var(--text-secondary)", marginBottom: "32px", maxWidth: "500px", margin: "0 auto 32px" }}>
-              Crea tu porra, elige tus 10 selecciones con presupuesto máximo de 115 puntos y comparte el enlace con tus amigos.
-            </p>
-            <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
-              <Link href="/crear-porra" className="btn btn-primary btn-lg">
-                🏆 Crear Porra
-              </Link>
-              <Link href="/unirse" className="btn btn-secondary btn-lg">
-                🔗 Unirse con código
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Removed Bottom CTA since it is now prominent at the top */}
     </div>
   );
 }
