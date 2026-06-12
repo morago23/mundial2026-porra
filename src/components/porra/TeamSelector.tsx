@@ -28,9 +28,9 @@ export default function TeamSelector({ selected, onChange, disabled }: TeamSelec
     }
   }
 
-  const displayedTeams = activeGroup
+  const displayedTeams = (activeGroup
     ? TEAMS.filter((t) => t.group === activeGroup)
-    : TEAMS;
+    : [...TEAMS]).sort((a, b) => b.value - a.value);
 
   return (
     <div>
@@ -115,10 +115,14 @@ function TeamChip({
       type="button"
       title={`${team.name} — Valor: ${team.value}`}
     >
-      <span className="team-chip-flag">{team.flag}</span>
-      <span className="team-chip-name">{team.name}</span>
-      <span className="team-chip-value">{team.value}</span>
-      {selected && <span className="team-chip-check">✓</span>}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
+        <span className="team-chip-flag">{team.flag}</span>
+        <span className="team-chip-name">{team.name}</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <span className="team-chip-value">{team.value} pts</span>
+        {selected && <span className="team-chip-check">✓</span>}
+      </div>
     </button>
   );
 }
