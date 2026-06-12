@@ -3,11 +3,24 @@
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { signInWithGoogle, signOutUser } from "@/lib/firebase/auth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Navbar() {
   const { user, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [theme, setTheme] = useState("light");
+
+  useEffect(() => {
+    const current = document.documentElement.getAttribute("data-theme") || "light";
+    setTheme(current);
+  }, []);
+
+  function toggleTheme() {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    document.documentElement.setAttribute("data-theme", newTheme);
+    localStorage.setItem("theme", newTheme);
+  }
 
   return (
     <nav className={`navbar ${menuOpen ? "open" : ""}`}>
@@ -22,6 +35,15 @@ export default function Navbar() {
             <li><Link href="/#resultados" onClick={() => setMenuOpen(false)}>Resultados</Link></li>
             <li><Link href="/#grupos" onClick={() => setMenuOpen(false)}>Grupos</Link></li>
             <li><Link href="/crear-porra" onClick={() => setMenuOpen(false)}>Crear Porra</Link></li>
+            <li>
+              <button 
+                onClick={toggleTheme} 
+                style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.2rem", color: "var(--text-primary)" }}
+                title="Cambiar tema"
+              >
+                {theme === "light" ? "🌙" : "☀️"}
+              </button>
+            </li>
           </ul>
 
           <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)}>
@@ -29,6 +51,14 @@ export default function Navbar() {
           </button>
 
           <div className="auth-user">
+            {/* Mobile theme toggle */}
+            <button 
+              className="mobile-only-theme-toggle"
+              onClick={toggleTheme} 
+              style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.5rem", color: "var(--text-primary)", marginRight: "12px", display: "none" }}
+            >
+              {theme === "light" ? "🌙" : "☀️"}
+            </button>
             {loading ? null : user ? (
               <>
                 {user.photoURL && (

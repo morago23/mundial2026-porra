@@ -3,64 +3,80 @@
    ============================================================ */
 
 /* ── Variables ───────────────────────────────────────────── */
-:root {
+:root, [data-theme='light'] {
   --font-display: var(--font-outfit), "Outfit", system-ui, sans-serif;
   --font-body: var(--font-inter), "Inter", system-ui, sans-serif;
 
-  /* Colors */
-  --bg-primary: #080c1a;
-  --bg-secondary: #0d1226;
-  --bg-card: rgba(255, 255, 255, 0.04);
-  --bg-card-hover: rgba(255, 255, 255, 0.07);
-  --bg-glass: rgba(255, 255, 255, 0.05);
-  --border: rgba(255, 255, 255, 0.08);
+  /* Light Theme Colors */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-glass: rgba(255, 255, 255, 0.85);
+  --border: #e2e8f0;
   --border-gold: rgba(201, 162, 39, 0.4);
+
+  --gold: #b4850d;
+  --gold-light: #d4a017;
+  --gold-dark: #8a6308;
+  --red: #e11d48;
+  --red-dark: #be123c;
+  --green: #16a34a;
+  --blue: #2563eb;
+  --purple: #7c3aed;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  --gradient-gold: linear-gradient(135deg, #d4a017, #f5d061);
+  --gradient-hero: radial-gradient(ellipse at top, #e2e8f0 0%, #f8fafc 60%);
+  --gradient-card: linear-gradient(135deg, rgba(201, 162, 39, 0.04), rgba(255, 255, 255, 1));
+
+  --shadow-gold: 0 4px 20px rgba(201, 162, 39, 0.15);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.08);
+
+  /* Shared Spacing & Utilities */
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem;
+  --space-12: 3rem; --space-16: 4rem;
+  
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px; --radius-full: 9999px;
+  
+  --transition: 0.2s ease;
+  --transition-slow: 0.4s ease;
+}
+
+[data-theme='dark'] {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --bg-card-hover: rgba(255, 255, 255, 0.06);
+  --bg-glass: rgba(15, 23, 42, 0.7);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-gold: rgba(201, 162, 39, 0.3);
 
   --gold: #c9a227;
   --gold-light: #f0c84e;
   --gold-dark: #9a7a1d;
-  --red: #e8334a;
-  --red-dark: #b02538;
-  --green: #2eca6a;
-  --blue: #4a9eff;
+  --red: #f43f5e;
+  --red-dark: #e11d48;
+  --green: #22c55e;
+  --blue: #3b82f6;
   --purple: #8b5cf6;
 
-  --text-primary: #f0f4ff;
-  --text-secondary: rgba(240, 244, 255, 0.6);
-  --text-muted: rgba(240, 244, 255, 0.35);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
 
-  /* Gradients */
   --gradient-gold: linear-gradient(135deg, #c9a227, #f0c84e);
-  --gradient-hero: radial-gradient(ellipse at top, #1a1040 0%, #080c1a 60%);
+  --gradient-hero: radial-gradient(ellipse at top, #1e293b 0%, #0f172a 60%);
   --gradient-card: linear-gradient(135deg, rgba(201, 162, 39, 0.08), rgba(255, 255, 255, 0.02));
 
-  /* Spacing */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-10: 2.5rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-
-  /* Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 9999px;
-
-  /* Shadows */
   --shadow-gold: 0 0 20px rgba(201, 162, 39, 0.15);
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
-
-  /* Transitions */
-  --transition: 0.2s ease;
-  --transition-slow: 0.4s ease;
 }
 
 /* ── Reset ───────────────────────────────────────────────── */
@@ -81,9 +97,6 @@ body {
   min-height: 100vh;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  background-image:
-    radial-gradient(ellipse at 20% 0%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 10%, rgba(201, 162, 39, 0.06) 0%, transparent 50%);
 }
 
 a {
@@ -127,8 +140,9 @@ h3 { font-size: clamp(1.1rem, 2vw, 1.5rem); }
   right: 0;
   z-index: 100;
   height: 70px;
-  background: rgba(8, 12, 26, 0.85);
+  background: var(--bg-glass);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -207,7 +221,8 @@ h3 { font-size: clamp(1.1rem, 2vw, 1.5rem); }
 
 .btn-primary {
   background: var(--gradient-gold);
-  color: #080c1a;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 .btn-primary:hover {
   filter: brightness(1.1);
@@ -369,7 +384,7 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
 }
 
 .form-input {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
@@ -576,7 +591,7 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
 /* ── Team Selector ───────────────────────────────────────── */
 .team-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: var(--space-3);
 }
 
@@ -586,12 +601,12 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
   border-radius: var(--radius-md);
   padding: var(--space-3) var(--space-4);
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-2);
   cursor: pointer;
   transition: all var(--transition);
   position: relative;
-  overflow: hidden;
 }
 
 .team-chip:hover:not(.disabled) {
@@ -611,8 +626,8 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
   cursor: not-allowed;
 }
 
-.team-chip-flag { font-size: 1.5rem; }
-.team-chip-name { font-size: 0.8rem; font-weight: 600; flex: 1; }
+.team-chip-flag { font-size: 1.5rem; line-height: 1; }
+.team-chip-name { font-size: 0.85rem; font-weight: 600; width: 100%; white-space: normal; line-height: 1.2; }
 .team-chip-value {
   font-size: 0.75rem;
   font-weight: 700;
@@ -1161,5 +1176,11 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     box-shadow: inset -10px 0 10px -10px rgba(0,0,0,0.5);
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-only-theme-toggle {
+    display: block !important;
   }
 }

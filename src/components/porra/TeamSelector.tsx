@@ -35,7 +35,15 @@ export default function TeamSelector({ selected, onChange, disabled }: TeamSelec
   return (
     <div>
       {/* Group filter */}
-      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "20px" }}>
+      <div style={{ 
+        display: "flex", 
+        gap: "8px", 
+        overflowX: "auto", 
+        paddingBottom: "8px",
+        marginBottom: "12px",
+        WebkitOverflowScrolling: "touch",
+        scrollbarWidth: "none"
+      }}>
         <button
           className={`tab ${activeGroup === null ? "active" : ""}`}
           onClick={() => setActiveGroup(null)}
