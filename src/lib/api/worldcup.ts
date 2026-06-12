@@ -73,10 +73,42 @@ export async function fetchMatches(): Promise<WCMatch[]> {
   if (cached) return cached;
 
   try {
-    const data = await fetchAPI("/matches");
-    const matches: WCMatch[] = Array.isArray(data) ? data : data.matches ?? [];
-    setCache("wc_matches", matches);
-    return matches;
+    const [liveRes, fixturesRes] = await Promise.all([
+      fetchAPI("/livescores"),
+      fetchAPI("/fixtures"),
+    ]);
+
+    // Format matches from the 'data' payload
+    const liveData = liveRes.data || [];
+    const fixturesData = fixturesRes.data || [];
+
+    // Safely combine and map. (Assuming API returns home_team/away_team or similar standard format)
+    const rawMatches = [...liveData, ...fixturesData];
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const matches: WCMatch[] = rawMatches.map((m: any) => ({
+      id: m.id || m._id || Math.random().toString(),
+      homeTeam: { 
+        code: m.homeTeam?.code || m.home_team_id || "TBD", 
+        name: m.homeTeam?.name || m.home_team_name || "TBD" 
+      },
+      awayTeam: { 
+        code: m.awayTeam?.code || m.away_team_id || "TBD", 
+        name: m.awayTeam?.name || m.away_team_name || "TBD" 
+      },
+      homeScore: m.homeScore ?? m.home_score ?? null,
+      awayScore: m.awayScore ?? m.away_score ?? null,
+      status: m.status || "SCHEDULED",
+      stage: m.stage || "GROUP",
+      group: m.group || m.group_name || undefined,
+      datetime: m.datetime || m.date || new Date().toISOString(),
+    }));
+
+    // Deduplicate by ID
+    const uniqueMatches = Array.from(new Map(matches.map((m) => [m.id, m])).values());
+
+    setCache("wc_matches", uniqueMatches);
+    return uniqueMatches;
   } catch (err) {
     console.error("Failed to fetch matches:", err);
     return [];
@@ -88,8 +120,32 @@ export async function fetchGroups(): Promise<WCGroup[]> {
   if (cached) return cached;
 
   try {
-    const data = await fetchAPI("/groups");
-    const groups: WCGroup[] = Array.isArray(data) ? data : data.groups ?? [];
+    const data = await fetchAPI("/standings");
+    // Assuming data.data is the array of groups
+    let groups: WCGroup[] = [];
+    
+    if (data.data && Array.isArray(data.data)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      groups = data.data.map((g: any) => ({
+        group: g.group || g.letter || "?",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        teams: (g.teams || g.standings || []).map((t: any) => ({
+          code: t.code || t.team_id || "?",
+          name: t.name || t.team_name || "?",
+          played: t.played || t.p || 0,
+          won: t.won || t.w || 0,
+          drawn: t.drawn || t.d || 0,
+          lost: t.lost || t.l || 0,
+          goalsFor: t.goalsFor || t.gf || 0,
+          goalsAgainst: t.goalsAgainst || t.ga || 0,
+          points: t.points || t.pts || 0,
+          position: t.position || t.pos || 0,
+        }))
+      }));
+    } else {
+      groups = Array.isArray(data) ? data : data.groups ?? [];
+    }
+    
     setCache("wc_groups", groups);
     return groups;
   } catch (err) {
