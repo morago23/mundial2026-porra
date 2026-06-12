@@ -19,9 +19,10 @@ export default function GroupTable({ group }: GroupTableProps) {
   return (
     <div className="group-card">
       <div className="group-header">Grupo {group.group}</div>
-      <table className="group-table" style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
+      <div style={{ overflowX: "auto", width: "100%" }}>
+        <table className="group-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "400px" }}>
+          <thead>
+            <tr>
             <th style={{ padding: "8px 20px", textAlign: "left", fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Equipo</th>
             <th style={{ padding: "8px 8px", textAlign: "center", fontSize: "0.7rem", color: "var(--text-muted)" }}>PJ</th>
             <th style={{ padding: "8px 8px", textAlign: "center", fontSize: "0.7rem", color: "var(--text-muted)" }}>G</th>
@@ -71,7 +72,8 @@ export default function GroupTable({ group }: GroupTableProps) {
             );
           })}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }
