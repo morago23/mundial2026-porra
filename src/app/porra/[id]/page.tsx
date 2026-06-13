@@ -217,58 +217,104 @@ export default function PorraPage() {
           </div>
         ) : (
           <>
-            {/* ── Biwenger Standings Table ───────────────────────── */}
-            <div style={{ background: "#0d0d0d", marginTop: "16px", borderRadius: "12px", overflow: "hidden", border: "1px solid #222" }}>
-              <div className="bw-standings-header">
-                <div className="bw-standings-header-cols">
-                  <span>Gen.</span>
-                  <span>Pts.</span>
+            {/* ── Podio Top 3 ─────────────────────────────────── */}
+            {scores.length >= 2 && (
+              <div className="podium-wrapper">
+                {/* 2º */}
+                <div className="podium-card podium-silver" onClick={() => setSelectedPlayer(scores[1])}>
+                  <div className="podium-medal">🥈</div>
+                  {scores[1].apuesta.userPhoto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={scores[1].apuesta.userPhoto} alt="" className="podium-avatar" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="podium-avatar podium-avatar-initials">{scores[1].apuesta.userName.charAt(0)}</div>
+                  )}
+                  <div className="podium-name">{scores[1].apuesta.userName.split(" ")[0]}</div>
+                  <div className="podium-pts">{scores[1].total.toFixed(1)}<span>pts</span></div>
+                  <div className="podium-bar podium-bar-2"></div>
                 </div>
+
+                {/* 1º */}
+                <div className="podium-card podium-gold" onClick={() => setSelectedPlayer(scores[0])}>
+                  <div className="podium-crown">👑</div>
+                  <div className="podium-medal">🥇</div>
+                  {scores[0].apuesta.userPhoto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={scores[0].apuesta.userPhoto} alt="" className="podium-avatar podium-avatar-lg" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="podium-avatar podium-avatar-lg podium-avatar-initials">{scores[0].apuesta.userName.charAt(0)}</div>
+                  )}
+                  <div className="podium-name podium-name-lg">{scores[0].apuesta.userName.split(" ")[0]}</div>
+                  <div className="podium-pts podium-pts-lg">{scores[0].total.toFixed(1)}<span>pts</span></div>
+                  <div className="podium-bar podium-bar-1"></div>
+                </div>
+
+                {/* 3º */}
+                {scores.length >= 3 && (
+                  <div className="podium-card podium-bronze" onClick={() => setSelectedPlayer(scores[2])}>
+                    <div className="podium-medal">🥉</div>
+                    {scores[2].apuesta.userPhoto ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={scores[2].apuesta.userPhoto} alt="" className="podium-avatar" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="podium-avatar podium-avatar-initials">{scores[2].apuesta.userName.charAt(0)}</div>
+                    )}
+                    <div className="podium-name">{scores[2].apuesta.userName.split(" ")[0]}</div>
+                    <div className="podium-pts">{scores[2].total.toFixed(1)}<span>pts</span></div>
+                    <div className="podium-bar podium-bar-3"></div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Clasificación completa ───────────────────────── */}
+            <div className="card" style={{ marginTop: "24px", padding: 0, overflow: "hidden" }}>
+              <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700 }}>Clasificación completa</h2>
+                {myScore && (
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                    Tu posición: <strong style={{ color: "var(--gold)" }}>#{scores.indexOf(myScore) + 1}</strong>
+                  </div>
+                )}
               </div>
 
               {scores.map((s, idx) => {
                 const isMe = s.apuesta.id === user?.uid;
-                const pos = idx + 1;
-                // Trend simulation: assume 1st goes up, others are flat or down (since we don't have historical data yet, we fake it for aesthetics like Biwenger, or we just put a dash)
-                // Let's just put a dash to be truthful, but style it like the screenshot.
-                let rankClass = "other";
-                if (pos === 1) rankClass = "first";
-                else if (pos === 2) rankClass = "second";
-                else if (pos === 3) rankClass = "third";
-
                 return (
                   <div
                     key={s.apuesta.id}
-                    className="bw-row"
+                    className={`league-row ${isMe ? "league-row-me" : ""}`}
                     onClick={() => setSelectedPlayer(s)}
-                    style={isMe ? { background: "#1a1a1a", borderLeft: "3px solid #4CAF50" } : {}}
                   >
-                    <div className="bw-rank-col">
-                      <div className={`bw-rank-box ${rankClass}`}>
-                        {pos}º
-                      </div>
-                      <div className="bw-rank-trend bw-trend-flat">-</div>
+                    <div className="league-rank">
+                      {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : <span style={{ fontWeight: 700, color: "var(--text-muted)" }}>{idx + 1}</span>}
                     </div>
-
-                    <div className="bw-user-col">
-                      {s.apuesta.userPhoto ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={s.apuesta.userPhoto} alt="" className="bw-avatar" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="bw-avatar" style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", fontWeight: 700 }}>
-                          {s.apuesta.userName.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="bw-name">
+                    {s.apuesta.userPhoto ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={s.apuesta.userPhoto} alt="" className="league-avatar" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="league-avatar league-avatar-initials">{s.apuesta.userName.charAt(0).toUpperCase()}</div>
+                    )}
+                    <div className="league-info">
+                      <div className="league-name">
                         {s.apuesta.userName}
-                        {porra.createdBy === s.apuesta.id && <span style={{ fontSize: "0.6rem", background: "#333", color: "#aaa", padding: "2px 4px", borderRadius: "4px", marginLeft: "6px", verticalAlign: "middle" }}>ADMIN</span>}
+                        {isMe && <span className="league-you-badge">tú</span>}
+                        {porra.createdBy === s.apuesta.id && <span className="league-admin-badge">admin</span>}
+                      </div>
+                      <div className="league-flags">
+                        {s.apuesta.teams.slice(0, 8).map((code) => (
+                          <span key={code} title={TEAMS_BY_CODE[code]?.name ?? code}>
+                            {TEAMS_BY_CODE[code]?.flag ?? "🏳️"}
+                          </span>
+                        ))}
+                        {s.apuesta.teams.length > 8 && <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>+{s.apuesta.teams.length - 8}</span>}
                       </div>
                     </div>
-
-                    <div className="bw-score-col">
-                      <div className="bw-score-box">{s.total.toFixed(0)}</div>
-                      <div className="bw-score-box" style={{ background: "transparent" }}>{s.total.toFixed(0)}</div>
+                    <div className="league-score">
+                      <div className="league-pts">{s.total.toFixed(1)}</div>
+                      <div className="league-pts-label">pts</div>
                     </div>
+                    <div className="league-chevron">›</div>
                   </div>
                 );
               })}
