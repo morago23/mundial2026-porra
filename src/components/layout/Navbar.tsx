@@ -3,24 +3,12 @@
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { signInWithGoogle, signOutUser } from "@/lib/firebase/auth";
-import { useState, useEffect, useRef } from "react";
-import { getUserLeagues, getApuestas, Porra, Apuesta } from "@/lib/firebase/firestore";
-import { fetchMatches, fetchGroups, mapToMatchResults, mapToGroupStandings } from "@/lib/api/worldcup";
-import { calculateScore } from "@/lib/scoring/calculator";
-import { TEAMS_BY_CODE } from "@/lib/data/teams";
-import { useRouter } from "next/navigation";
-
-interface PlayerScore {
-  apuesta: Apuesta;
-  total: number;
-  detail: string[];
-}
+import { useState, useEffect } from "react";
+import { getUserLeagues, Porra, Apuesta } from "@/lib/firebase/firestore";
 
 interface LeagueDetail {
   porra: Porra;
   apuesta: Apuesta;
-  scores?: PlayerScore[];
-  loadingScores?: boolean;
 }
 
 export default function Navbar() {
@@ -29,34 +17,18 @@ export default function Navbar() {
   const [theme, setTheme] = useState("light");
   const [leagues, setLeagues] = useState<LeagueDetail[]>([]);
   const [loadingLeagues, setLoadingLeagues] = useState(false);
-  const [expandedLeague, setExpandedLeague] = useState<string | null>(null);
-  const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
 
   useEffect(() => {
     const current = document.documentElement.getAttribute("data-theme") || "light";
     setTheme(current);
   }, []);
 
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setPanelOpen(false);
-      }
-    }
-    if (panelOpen) {
-      setTimeout(() => document.addEventListener("mousedown", handleClick), 50);
-    }
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [panelOpen]);
-
   // Load leagues when panel opens
   useEffect(() => {
     if (panelOpen && user && leagues.length === 0) {
       setLoadingLeagues(true);
       getUserLeagues(user.uid)
-        .then((data) => setLeagues(data.map((d) => ({ ...d }))))
+        .then((data) => setLeagues(data))
         .catch(console.error)
         .finally(() => setLoadingLeagues(false));
     }
@@ -69,60 +41,33 @@ export default function Navbar() {
     localStorage.setItem("theme", newTheme);
   }
 
-  async function toggleLeague(porraId: string) {
-    if (expandedLeague === porraId) {
-      setExpandedLeague(null);
-      return;
-    }
-    setExpandedLeague(porraId);
-    setExpandedPlayer(null);
-
-    // Load scores for this league if not loaded yet
-    const idx = leagues.findIndex((l) => l.porra.id === porraId);
-    if (idx === -1 || leagues[idx].scores) return;
-
-    setLeagues((prev) =>
-      prev.map((l, i) => i === idx ? { ...l, loadingScores: true } : l)
-    );
-
-    try {
-      const [apuestas, matches, groups] = await Promise.all([
-        getApuestas(porraId),
-        fetchMatches(),
-        fetchGroups(),
-      ]);
-      const matchResults = mapToMatchResults(matches);
-      const groupStandings = mapToGroupStandings(groups);
-
-      const scored: PlayerScore[] = apuestas.map((a) => {
-        const breakdown = calculateScore(
-          { teams: a.teams, mvp: a.mvp, pichichi: a.pichichi, guanteOro: a.guanteOro, mejorJoven: a.mejorJoven },
-          matchResults, groupStandings, {}
-        );
-        return { apuesta: a, total: breakdown.total, detail: breakdown.detail };
-      });
-      scored.sort((a, b) => b.total - a.total);
-
-      setLeagues((prev) =>
-        prev.map((l, i) => i === idx ? { ...l, scores: scored, loadingScores: false } : l)
-      );
-    } catch {
-      setLeagues((prev) =>
-        prev.map((l, i) => i === idx ? { ...l, loadingScores: false } : l)
-      );
-    }
-  }
-
   function closePanel() {
     setPanelOpen(false);
-    setExpandedLeague(null);
-    setExpandedPlayer(null);
   }
 
   return (
     <>
       <nav className="navbar">
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {user && (
+            <button 
+              onClick={() => setPanelOpen((p) => !p)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+                padding: "8px 0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1.5rem",
+              }}
+              title="Menú"
+            >
+              ☰
+            </button>
+          )}
           <Link href="/" className="navbar-brand">
             <span className="trophy">🏆</span>
             <span>Porra Mundial 2026</span>
@@ -141,29 +86,7 @@ export default function Navbar() {
           )}
 
           {!loading && user && (
-            <div className="nav-user-area" ref={panelRef}>
-              <button 
-                onClick={() => setPanelOpen((p) => !p)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "var(--text-primary)",
-                  cursor: "pointer",
-                  padding: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "50%",
-                }}
-                title="Menú"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="5" r="1.5"></circle>
-                  <circle cx="12" cy="12" r="1.5"></circle>
-                  <circle cx="12" cy="19" r="1.5"></circle>
-                </svg>
-              </button>
-
+            <div className="nav-user-area">
               {panelOpen && (
                 <div className="nav-panel animate-panel">
                   {/* User info */}
@@ -193,107 +116,15 @@ export default function Navbar() {
                     <div className="nav-panel-empty">Aún no estás en ninguna liga</div>
                   ) : (
                     leagues.map((item) => (
-                      <div key={item.porra.id} className="nav-league-block">
-                        {/* League header (clickable) */}
-                        <button
-                          className="nav-league-header"
-                          onClick={() => toggleLeague(item.porra.id)}
-                        >
-                          <span>🏆 {item.porra.name}</span>
-                          <span className="nav-league-chevron">
-                            {expandedLeague === item.porra.id ? "▲" : "▼"}
-                          </span>
-                        </button>
-
-                        {/* Inline standings */}
-                        {expandedLeague === item.porra.id && (
-                          <div className="nav-league-standings">
-                            {item.loadingScores ? (
-                              <div className="nav-panel-empty">Cargando clasificación...</div>
-                            ) : !item.scores || item.scores.length === 0 ? (
-                              <div className="nav-panel-empty">Sin participantes aún</div>
-                            ) : (
-                              item.scores.map((s, idx) => {
-                                const isExpanded = expandedPlayer === `${item.porra.id}-${s.apuesta.id}`;
-                                const isMe = s.apuesta.id === user?.uid;
-                                return (
-                                  <div key={s.apuesta.id}>
-                                    <button
-                                      className={`nav-player-row ${isMe ? "nav-player-me" : ""}`}
-                                      onClick={() =>
-                                        setExpandedPlayer(isExpanded ? null : `${item.porra.id}-${s.apuesta.id}`)
-                                      }
-                                    >
-                                      <span className="nav-player-rank">
-                                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : idx + 1}
-                                      </span>
-                                      {s.apuesta.userPhoto ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                          src={s.apuesta.userPhoto}
-                                          alt=""
-                                          className="nav-player-avatar"
-                                          referrerPolicy="no-referrer"
-                                        />
-                                      ) : (
-                                        <div className="nav-player-avatar nav-avatar-initials" style={{ fontSize: "0.7rem" }}>
-                                          {s.apuesta.userName.charAt(0).toUpperCase()}
-                                        </div>
-                                      )}
-                                      <span className="nav-player-name">
-                                        {s.apuesta.userName.split(" ")[0]}
-                                        {isMe && <span style={{ color: "var(--gold)", fontSize: "0.7rem", marginLeft: "4px" }}>tú</span>}
-                                      </span>
-                                      <span className="nav-player-pts">{s.total.toFixed(0)}p</span>
-                                    </button>
-
-                                    {/* Player bets detail */}
-                                    {isExpanded && (
-                                      <div className="nav-player-detail">
-                                        <div className="nav-detail-section">
-                                          <div className="nav-detail-title">Equipos</div>
-                                          <div className="nav-detail-flags">
-                                            {s.apuesta.teams.map((code) => (
-                                              <span key={code} title={TEAMS_BY_CODE[code]?.name ?? code}>
-                                                {TEAMS_BY_CODE[code]?.flag ?? "🏳️"}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        </div>
-                                        <div className="nav-detail-section">
-                                          <div className="nav-detail-title">Predicciones</div>
-                                          <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
-                                            <div>🌟 {s.apuesta.mvp || "—"}</div>
-                                            <div>⚽ {s.apuesta.pichichi || "—"}</div>
-                                            <div>🧤 {s.apuesta.guanteOro || "—"}</div>
-                                            <div>🌱 {s.apuesta.mejorJoven || "—"}</div>
-                                          </div>
-                                        </div>
-                                        {s.detail.length > 0 && (
-                                          <div className="nav-detail-section">
-                                            <div className="nav-detail-title">Puntos conseguidos</div>
-                                            {s.detail.map((d, i) => (
-                                              <div key={i} style={{ fontSize: "0.75rem", color: "var(--green)" }}>✓ {d}</div>
-                                            ))}
-                                          </div>
-                                        )}
-                                        <Link
-                                          href={`/porra/${item.porra.id}`}
-                                          className="btn btn-secondary btn-sm"
-                                          style={{ width: "100%", justifyContent: "center", marginTop: "8px", fontSize: "0.78rem" }}
-                                          onClick={closePanel}
-                                        >
-                                          Ver clasificación completa →
-                                        </Link>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      <Link
+                        href={`/porra/${item.porra.id}`}
+                        key={item.porra.id}
+                        className="nav-panel-item"
+                        style={{ border: "1px solid rgba(201,162,39,0.15)", marginBottom: "4px" }}
+                        onClick={closePanel}
+                      >
+                        <span>🏆</span> <span style={{ flex: 1, fontWeight: 600 }}>{item.porra.name}</span>
+                      </Link>
                     ))
                   )}
 

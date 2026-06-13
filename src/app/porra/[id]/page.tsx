@@ -217,60 +217,10 @@ export default function PorraPage() {
           </div>
         ) : (
           <>
-            {/* ── Podio Top 3 ─────────────────────────────────── */}
-            {scores.length >= 2 && (
-              <div className="podium-wrapper">
-                {/* 2º */}
-                <div className="podium-card podium-silver" onClick={() => setSelectedPlayer(scores[1])}>
-                  <div className="podium-medal">🥈</div>
-                  {scores[1].apuesta.userPhoto ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={scores[1].apuesta.userPhoto} alt="" className="podium-avatar" referrerPolicy="no-referrer" />
-                  ) : (
-                    <div className="podium-avatar podium-avatar-initials">{scores[1].apuesta.userName.charAt(0)}</div>
-                  )}
-                  <div className="podium-name">{scores[1].apuesta.userName.split(" ")[0]}</div>
-                  <div className="podium-pts">{scores[1].total.toFixed(1)}<span>pts</span></div>
-                  <div className="podium-bar podium-bar-2"></div>
-                </div>
-
-                {/* 1º */}
-                <div className="podium-card podium-gold" onClick={() => setSelectedPlayer(scores[0])}>
-                  <div className="podium-crown">👑</div>
-                  <div className="podium-medal">🥇</div>
-                  {scores[0].apuesta.userPhoto ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={scores[0].apuesta.userPhoto} alt="" className="podium-avatar podium-avatar-lg" referrerPolicy="no-referrer" />
-                  ) : (
-                    <div className="podium-avatar podium-avatar-lg podium-avatar-initials">{scores[0].apuesta.userName.charAt(0)}</div>
-                  )}
-                  <div className="podium-name podium-name-lg">{scores[0].apuesta.userName.split(" ")[0]}</div>
-                  <div className="podium-pts podium-pts-lg">{scores[0].total.toFixed(1)}<span>pts</span></div>
-                  <div className="podium-bar podium-bar-1"></div>
-                </div>
-
-                {/* 3º */}
-                {scores.length >= 3 && (
-                  <div className="podium-card podium-bronze" onClick={() => setSelectedPlayer(scores[2])}>
-                    <div className="podium-medal">🥉</div>
-                    {scores[2].apuesta.userPhoto ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={scores[2].apuesta.userPhoto} alt="" className="podium-avatar" referrerPolicy="no-referrer" />
-                    ) : (
-                      <div className="podium-avatar podium-avatar-initials">{scores[2].apuesta.userName.charAt(0)}</div>
-                    )}
-                    <div className="podium-name">{scores[2].apuesta.userName.split(" ")[0]}</div>
-                    <div className="podium-pts">{scores[2].total.toFixed(1)}<span>pts</span></div>
-                    <div className="podium-bar podium-bar-3"></div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Clasificación completa ───────────────────────── */}
-            <div className="card" style={{ marginTop: "24px", padding: 0, overflow: "hidden" }}>
+            {/* ── Clasificación Completa Normal ───────────────────────── */}
+            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
               <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700 }}>Clasificación completa</h2>
+                <h2 style={{ margin: 0, fontSize: "1rem", fontWeight: 700 }}>Clasificación</h2>
                 {myScore && (
                   <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
                     Tu posición: <strong style={{ color: "var(--gold)" }}>#{scores.indexOf(myScore) + 1}</strong>

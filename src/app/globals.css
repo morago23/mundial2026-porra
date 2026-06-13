@@ -773,18 +773,18 @@ h1, h2, h3, h4 {
 .nav-panel {
   position: fixed;
   top: 0;
-  right: 0;
+  left: 0;
   bottom: 0;
-  width: 340px;
+  width: 320px;
   max-width: 85vw;
   max-height: 100vh;
   overflow-y: auto;
   background: var(--bg-glass-solid);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-left: 1px solid var(--border-glass);
-  border-radius: 20px 0 0 20px;
-  box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+  border-right: 1px solid var(--border-glass);
+  border-radius: 0 20px 20px 0;
+  box-shadow: 10px 0 40px rgba(0,0,0,0.5);
   z-index: 2000;
   padding: 20px 16px;
   display: flex;
@@ -793,11 +793,11 @@ h1, h2, h3, h4 {
 }
 
 .animate-panel {
-  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes slideInRight {
-  from { transform: translateX(100%); }
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
 
