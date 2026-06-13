@@ -1200,16 +1200,20 @@ h1, h2, h3, h4 {
   min-width: 0;
 }
 
+.league-info {
+  flex: 1;
+  min-width: 0;
+  padding-right: 8px;
+}
+
 .league-name {
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-weight: 700;
+  font-size: 0.85rem;
   margin-bottom: 4px;
   display: flex;
   align-items: center;
   gap: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .league-you-badge {
