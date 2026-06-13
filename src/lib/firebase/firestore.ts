@@ -4,6 +4,7 @@ import {
   setDoc,
   getDoc,
   getDocs,
+  deleteDoc,
   query,
   where,
   serverTimestamp,
@@ -11,6 +12,7 @@ import {
   orderBy,
   collectionGroup,
   arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import { db } from "./config";
 import { nanoid } from "nanoid";
@@ -254,3 +256,53 @@ export async function getUserLeagues(userId: string): Promise<{ porra: Porra; ap
   }
 }
 
+// ─── Admin Functions ──────────────────────────────────────────────────────────
+
+/** Creator removes a user from the league */
+export async function removeUserFromLeague(porraId: string, targetUserId: string, requesterId: string): Promise<void> {
+  const porraSnap = await getDoc(doc(db, "porras", porraId));
+  if (!porraSnap.exists()) throw new Error("Liga no encontrada");
+  if (porraSnap.data().createdBy !== requesterId) throw new Error("Solo el creador puede eliminar jugadores");
+
+  await deleteDoc(doc(db, "porras", porraId, "apuestas", targetUserId));
+
+  // Remove from user's leagues index
+  await setDoc(doc(db, "users", targetUserId), { leagues: arrayRemove(porraId) }, { merge: true }).catch(() => {});
+
+  // Decrement member count
+  const current = porraSnap.data().memberCount ?? 1;
+  await setDoc(doc(db, "porras", porraId), { memberCount: Math.max(0, current - 1) }, { merge: true });
+}
+
+/** User leaves a league voluntarily */
+export async function leaveLeague(porraId: string, userId: string): Promise<void> {
+  const porraSnap = await getDoc(doc(db, "porras", porraId));
+  if (!porraSnap.exists()) throw new Error("Liga no encontrada");
+  if (porraSnap.data().createdBy === userId) throw new Error("El creador no puede abandonar la liga. Usa 'Borrar liga'.");
+
+  await deleteDoc(doc(db, "porras", porraId, "apuestas", userId));
+  await setDoc(doc(db, "users", userId), { leagues: arrayRemove(porraId) }, { merge: true }).catch(() => {});
+
+  const current = porraSnap.data().memberCount ?? 1;
+  await setDoc(doc(db, "porras", porraId), { memberCount: Math.max(0, current - 1) }, { merge: true });
+}
+
+/** Creator deletes the entire league and all bets */
+export async function deletePorra(porraId: string, requesterId: string): Promise<void> {
+  const porraSnap = await getDoc(doc(db, "porras", porraId));
+  if (!porraSnap.exists()) throw new Error("Liga no encontrada");
+  if (porraSnap.data().createdBy !== requesterId) throw new Error("Solo el creador puede borrar la liga");
+
+  // Delete all apuestas
+  const apuestasSnap = await getDocs(collection(db, "porras", porraId, "apuestas"));
+  await Promise.all(
+    apuestasSnap.docs.map(async (d) => {
+      // Remove from user index
+      await setDoc(doc(db, "users", d.id), { leagues: arrayRemove(porraId) }, { merge: true }).catch(() => {});
+      await deleteDoc(d.ref);
+    })
+  );
+
+  // Delete the porra document
+  await deleteDoc(doc(db, "porras", porraId));
+}

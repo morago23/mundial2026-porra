@@ -1,4 +1,5 @@
 import { MatchResult, GroupStanding } from "@/lib/scoring/calculator";
+import { resolveTeamCode } from "@/lib/data/teams";
 
 const API_BASE = "https://worldcup26.ir/api";
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in ms
@@ -80,12 +81,15 @@ export async function fetchMatches(): Promise<WCMatch[]> {
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const matches: WCMatch[] = rawMatches.map((m: any) => {
-      const hName = typeof m.homeTeam === 'string' ? m.homeTeam : (m.homeTeam?.name || m.home_team_name || "TBD");
-      const aName = typeof m.awayTeam === 'string' ? m.awayTeam : (m.awayTeam?.name || m.away_team_name || "TBD");
+      const hNameRaw = typeof m.homeTeam === 'string' ? m.homeTeam : (m.homeTeam?.name || m.home_team_name || "TBD");
+      const aNameRaw = typeof m.awayTeam === 'string' ? m.awayTeam : (m.awayTeam?.name || m.away_team_name || "TBD");
+      // Resolve to internal code (MEX, RSA, etc.)
+      const hCode = resolveTeamCode(hNameRaw);
+      const aCode = resolveTeamCode(aNameRaw);
       return {
         id: m.id || m._id || Math.random().toString(),
-        homeTeam: { code: hName, name: hName },
-        awayTeam: { code: aName, name: aName },
+        homeTeam: { code: hCode, name: hNameRaw },
+        awayTeam: { code: aCode, name: aNameRaw },
         homeScore: m.homeScore ?? m.home_score ?? null,
         awayScore: m.awayScore ?? m.away_score ?? null,
         status: m.status || "SCHEDULED",
@@ -119,10 +123,11 @@ export async function fetchGroups(): Promise<WCGroup[]> {
       groups = Object.keys(data.groups).map((groupKey) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const teams = data.groups[groupKey].map((t: any) => {
-          const tName = typeof t.team === "string" ? t.team : (t.name || t.team_name || "?");
+          const tNameRaw = typeof t.team === "string" ? t.team : (t.name || t.team_name || "?");
+          const tCode = resolveTeamCode(tNameRaw);
           return {
-            code: tName,
-            name: tName,
+            code: tCode,
+            name: tNameRaw,
             played: t.played || t.p || 0,
             won: t.won || t.w || 0,
             drawn: t.drawn || t.d || 0,
