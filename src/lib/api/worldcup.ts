@@ -1,7 +1,7 @@
 import { MatchResult, GroupStanding } from "@/lib/scoring/calculator";
 
 const API_BASE = "https://worldcup26.ir/api";
-const CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours in ms
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in ms
 
 interface CacheEntry<T> {
   data: T;

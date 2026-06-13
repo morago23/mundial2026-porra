@@ -10,6 +10,7 @@ import {
   Timestamp,
   orderBy,
   collectionGroup,
+  arrayUnion,
 } from "firebase/firestore";
 import { db } from "./config";
 import { nanoid } from "nanoid";
@@ -81,6 +82,11 @@ export async function createPorra(
     createdAt: serverTimestamp(),
   });
 
+  // Track the league in the user's document
+  await setDoc(doc(db, "users", userId), {
+    leagues: arrayUnion(id)
+  }, { merge: true });
+
   return id;
 }
 
@@ -134,6 +140,11 @@ export async function saveApuesta(
     createdAt: serverTimestamp(),
   });
 
+  // Track the league in the user's document
+  await setDoc(doc(db, "users", userId), {
+    leagues: arrayUnion(porraId)
+  }, { merge: true });
+
   // Increment member count
   const porraRef = doc(db, "porras", porraId);
   const porraSnap = await getDoc(porraRef);
@@ -151,35 +162,41 @@ export async function getApuestas(porraId: string): Promise<Apuesta[]> {
 }
 
 export async function getUserLeagues(userId: string): Promise<{ porra: Porra; apuesta: Apuesta }[]> {
-  // Query all 'apuestas' subcollections where id == userId
-  const q = query(collectionGroup(db, "apuestas"), where("id", "==", userId));
-  const snap = await getDocs(q);
-  const apuestas = snap.docs.map((d) => d.data() as Apuesta);
-
-  if (apuestas.length === 0) return [];
-
-  // Deduplicate porraIds just in case
-  const porraIds = Array.from(new Set(apuestas.map((a) => a.porraId)));
-
-  // Fetch the corresponding porras
-  const porrasPromises = porraIds.map((id) => getPorra(id));
-  const porrasResults = await Promise.all(porrasPromises);
-
-  const porrasMap = new Map<string, Porra>();
-  porrasResults.forEach((p) => {
-    if (p) porrasMap.set(p.id, p);
-  });
-
-  // Combine them
-  const result: { porra: Porra; apuesta: Apuesta }[] = [];
-  for (const apuesta of apuestas) {
-    const porra = porrasMap.get(apuesta.porraId);
-    if (porra) {
-      result.push({ porra, apuesta });
+  // Read users/userId -> leagues array
+  const userSnap = await getDoc(doc(db, "users", userId));
+  let leagueIds: string[] = [];
+  
+  if (userSnap.exists() && userSnap.data().leagues) {
+    leagueIds = userSnap.data().leagues;
+  } else {
+    // Fallback: search all porras (auto-heal will populate users later)
+    const allPorras = await getDocs(collection(db, "porras"));
+    for (const d of allPorras.docs) {
+      leagueIds.push(d.id);
     }
   }
 
-  // Sort by created At descending (most recent league joined first)
+  const result: { porra: Porra; apuesta: Apuesta }[] = [];
+  for (const pid of leagueIds) {
+    try {
+      const snap = await getDoc(doc(db, "porras", pid, "apuestas", userId));
+      if (snap.exists()) {
+        const pSnap = await getDoc(doc(db, "porras", pid));
+        if (pSnap.exists()) {
+          result.push({ porra: pSnap.data() as Porra, apuesta: snap.data() as Apuesta });
+          
+          // Auto-heal the index
+          if (!userSnap.exists() || !userSnap.data().leagues?.includes(pid)) {
+             await setDoc(doc(db, "users", userId), { leagues: arrayUnion(pid) }, { merge: true });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Error fetching league", pid, err);
+    }
+  }
+
+  // Sort by created At descending
   result.sort((a, b) => b.apuesta.createdAt.toMillis() - a.apuesta.createdAt.toMillis());
 
   return result;
