@@ -162,42 +162,95 @@ export async function getApuestas(porraId: string): Promise<Apuesta[]> {
 }
 
 export async function getUserLeagues(userId: string): Promise<{ porra: Porra; apuesta: Apuesta }[]> {
-  // Read users/userId -> leagues array
-  const userSnap = await getDoc(doc(db, "users", userId));
-  let leagueIds: string[] = [];
-  
-  if (userSnap.exists() && userSnap.data().leagues) {
-    leagueIds = userSnap.data().leagues;
-  } else {
-    // Fallback: search all porras (auto-heal will populate users later)
-    const allPorras = await getDocs(collection(db, "porras"));
-    for (const d of allPorras.docs) {
-      leagueIds.push(d.id);
-    }
-  }
-
-  const result: { porra: Porra; apuesta: Apuesta }[] = [];
-  for (const pid of leagueIds) {
-    try {
-      const snap = await getDoc(doc(db, "porras", pid, "apuestas", userId));
-      if (snap.exists()) {
-        const pSnap = await getDoc(doc(db, "porras", pid));
-        if (pSnap.exists()) {
-          result.push({ porra: pSnap.data() as Porra, apuesta: snap.data() as Apuesta });
-          
-          // Auto-heal the index
-          if (!userSnap.exists() || !userSnap.data().leagues?.includes(pid)) {
-             await setDoc(doc(db, "users", userId), { leagues: arrayUnion(pid) }, { merge: true });
+  // Strategy 1: Read from users/{userId}.leagues array (fast path)
+  try {
+    const userSnap = await getDoc(doc(db, "users", userId));
+    if (userSnap.exists() && Array.isArray(userSnap.data().leagues) && userSnap.data().leagues.length > 0) {
+      const leagueIds: string[] = userSnap.data().leagues;
+      const result: { porra: Porra; apuesta: Apuesta }[] = [];
+      
+      for (const pid of leagueIds) {
+        try {
+          const [apSnap, pSnap] = await Promise.all([
+            getDoc(doc(db, "porras", pid, "apuestas", userId)),
+            getDoc(doc(db, "porras", pid)),
+          ]);
+          if (apSnap.exists() && pSnap.exists()) {
+            result.push({ porra: pSnap.data() as Porra, apuesta: apSnap.data() as Apuesta });
           }
+        } catch {
+          // Skip leagues that fail individually
         }
       }
-    } catch (err) {
-      console.warn("Error fetching league", pid, err);
+      
+      result.sort((a, b) => b.apuesta.createdAt.toMillis() - a.apuesta.createdAt.toMillis());
+      return result;
     }
+  } catch {
+    // Fall through to Strategy 2
   }
 
-  // Sort by created At descending
-  result.sort((a, b) => b.apuesta.createdAt.toMillis() - a.apuesta.createdAt.toMillis());
+  // Strategy 2: collectionGroup query across all 'apuestas' subcollections
+  try {
+    const q = query(collectionGroup(db, "apuestas"), where("id", "==", userId));
+    const snap = await getDocs(q);
+    
+    if (snap.empty) return [];
+    
+    const apuestas = snap.docs.map((d) => d.data() as Apuesta);
+    const porraIds = Array.from(new Set(apuestas.map((a) => a.porraId)));
+    
+    const porrasSnaps = await Promise.all(porraIds.map((pid) => getDoc(doc(db, "porras", pid))));
+    const porrasMap = new Map<string, Porra>();
+    porrasSnaps.forEach((ps) => { if (ps.exists()) porrasMap.set(ps.id, ps.data() as Porra); });
 
-  return result;
+    const result: { porra: Porra; apuesta: Apuesta }[] = [];
+    for (const apuesta of apuestas) {
+      const porra = porrasMap.get(apuesta.porraId);
+      if (porra) result.push({ porra, apuesta });
+    }
+    
+    result.sort((a, b) => b.apuesta.createdAt.toMillis() - a.apuesta.createdAt.toMillis());
+    
+    // Auto-heal: write the found leagues to the user document for future fast lookups
+    if (result.length > 0) {
+      const leagueIds = result.map((r) => r.porra.id);
+      setDoc(doc(db, "users", userId), { leagues: leagueIds }, { merge: true }).catch(() => {});
+    }
+    
+    return result;
+  } catch {
+    // Fall through to Strategy 3
+  }
+
+  // Strategy 3: Brute-force scan all porras (last resort)
+  try {
+    const allPorras = await getDocs(collection(db, "porras"));
+    const result: { porra: Porra; apuesta: Apuesta }[] = [];
+    
+    await Promise.all(
+      allPorras.docs.map(async (pDoc) => {
+        try {
+          const apSnap = await getDoc(doc(db, "porras", pDoc.id, "apuestas", userId));
+          if (apSnap.exists()) {
+            result.push({ porra: pDoc.data() as Porra, apuesta: apSnap.data() as Apuesta });
+          }
+        } catch { /* skip */ }
+      })
+    );
+    
+    result.sort((a, b) => b.apuesta.createdAt.toMillis() - a.apuesta.createdAt.toMillis());
+    
+    // Auto-heal
+    if (result.length > 0) {
+      const leagueIds = result.map((r) => r.porra.id);
+      setDoc(doc(db, "users", userId), { leagues: leagueIds }, { merge: true }).catch(() => {});
+    }
+    
+    return result;
+  } catch (err) {
+    console.error("getUserLeagues: all strategies failed", err);
+    return [];
+  }
 }
+
