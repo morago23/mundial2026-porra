@@ -3,17 +3,35 @@
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { signInWithGoogle, signOutUser } from "@/lib/firebase/auth";
-import { useState, useEffect } from "react";
-import { getUserLeagues } from "@/lib/firebase/firestore";
-import { Porra, Apuesta } from "@/lib/firebase/firestore";
+import { useState, useEffect, useRef } from "react";
+import { getUserLeagues, getApuestas, Porra, Apuesta } from "@/lib/firebase/firestore";
+import { fetchMatches, fetchGroups, mapToMatchResults, mapToGroupStandings } from "@/lib/api/worldcup";
+import { calculateScore } from "@/lib/scoring/calculator";
+import { TEAMS_BY_CODE } from "@/lib/data/teams";
 import { useRouter } from "next/navigation";
+
+interface PlayerScore {
+  apuesta: Apuesta;
+  total: number;
+  detail: string[];
+}
+
+interface LeagueDetail {
+  porra: Porra;
+  apuesta: Apuesta;
+  scores?: PlayerScore[];
+  loadingScores?: boolean;
+}
 
 export default function Navbar() {
   const { user, loading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [theme, setTheme] = useState("light");
-  const [leagues, setLeagues] = useState<{ porra: Porra; apuesta: Apuesta }[]>([]);
+  const [leagues, setLeagues] = useState<LeagueDetail[]>([]);
   const [loadingLeagues, setLoadingLeagues] = useState(false);
+  const [expandedLeague, setExpandedLeague] = useState<string | null>(null);
+  const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -21,23 +39,28 @@ export default function Navbar() {
     setTheme(current);
   }, []);
 
-  // Fetch leagues when sidebar opens and user is logged in
   useEffect(() => {
-    if (sidebarOpen && user) {
-      async function load() {
-        setLoadingLeagues(true);
-        try {
-          const data = await getUserLeagues(user.uid);
-          setLeagues(data);
-        } catch (err) {
-          console.error(err);
-        } finally {
-          setLoadingLeagues(false);
-        }
+    function handleClick(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setPanelOpen(false);
       }
-      load();
     }
-  }, [sidebarOpen, user]);
+    if (panelOpen) {
+      setTimeout(() => document.addEventListener("mousedown", handleClick), 50);
+    }
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [panelOpen]);
+
+  // Load leagues when panel opens
+  useEffect(() => {
+    if (panelOpen && user && leagues.length === 0) {
+      setLoadingLeagues(true);
+      getUserLeagues(user.uid)
+        .then((data) => setLeagues(data.map((d) => ({ ...d }))))
+        .catch(console.error)
+        .finally(() => setLoadingLeagues(false));
+    }
+  }, [panelOpen, user]);
 
   function toggleTheme() {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -46,145 +69,255 @@ export default function Navbar() {
     localStorage.setItem("theme", newTheme);
   }
 
-  function closeSidebar() {
-    setSidebarOpen(false);
+  async function toggleLeague(porraId: string) {
+    if (expandedLeague === porraId) {
+      setExpandedLeague(null);
+      return;
+    }
+    setExpandedLeague(porraId);
+    setExpandedPlayer(null);
+
+    // Load scores for this league if not loaded yet
+    const idx = leagues.findIndex((l) => l.porra.id === porraId);
+    if (idx === -1 || leagues[idx].scores) return;
+
+    setLeagues((prev) =>
+      prev.map((l, i) => i === idx ? { ...l, loadingScores: true } : l)
+    );
+
+    try {
+      const [apuestas, matches, groups] = await Promise.all([
+        getApuestas(porraId),
+        fetchMatches(),
+        fetchGroups(),
+      ]);
+      const matchResults = mapToMatchResults(matches);
+      const groupStandings = mapToGroupStandings(groups);
+
+      const scored: PlayerScore[] = apuestas.map((a) => {
+        const breakdown = calculateScore(
+          { teams: a.teams, mvp: a.mvp, pichichi: a.pichichi, guanteOro: a.guanteOro, mejorJoven: a.mejorJoven },
+          matchResults, groupStandings, {}
+        );
+        return { apuesta: a, total: breakdown.total, detail: breakdown.detail };
+      });
+      scored.sort((a, b) => b.total - a.total);
+
+      setLeagues((prev) =>
+        prev.map((l, i) => i === idx ? { ...l, scores: scored, loadingScores: false } : l)
+      );
+    } catch {
+      setLeagues((prev) =>
+        prev.map((l, i) => i === idx ? { ...l, loadingScores: false } : l)
+      );
+    }
+  }
+
+  function closePanel() {
+    setPanelOpen(false);
+    setExpandedLeague(null);
+    setExpandedPlayer(null);
   }
 
   return (
     <>
       <nav className="navbar">
-        <div className="navbar-header" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <button className="menu-toggle-btn" onClick={() => setSidebarOpen(true)}>
-            ☰
-          </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <Link href="/" className="navbar-brand">
             <span className="trophy">🏆</span>
             <span>Porra Mundial 2026</span>
           </Link>
         </div>
 
-        <div className="navbar-right" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <button 
-            className="theme-toggle-btn"
-            onClick={toggleTheme} 
-            title="Cambiar tema"
-          >
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <button className="theme-toggle-btn" onClick={toggleTheme} title="Cambiar tema">
             {theme === "light" ? "🌙" : "☀️"}
           </button>
 
           {!loading && !user && (
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => signInWithGoogle()}
-              style={{ padding: "8px 16px", fontSize: "0.85rem" }}
-            >
+            <button className="btn btn-primary btn-sm" onClick={() => signInWithGoogle()}>
               Entrar
             </button>
           )}
 
           {!loading && user && (
-            <button className="avatar-btn" onClick={() => setSidebarOpen(true)}>
-              {user.photoURL ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.photoURL} alt={user.displayName ?? "User"} className="avatar" />
-              ) : (
-                <div className="avatar" style={{ background: "var(--gradient-gold)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
-                  {user.displayName?.charAt(0).toUpperCase() ?? "U"}
+            <div className="nav-user-area" ref={panelRef}>
+              <button className="avatar-btn" onClick={() => setPanelOpen((p) => !p)}>
+                {user.photoURL ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.photoURL} alt="" className="nav-avatar" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="nav-avatar nav-avatar-initials">
+                    {user.displayName?.charAt(0).toUpperCase() ?? "U"}
+                  </div>
+                )}
+                <div className="nav-user-name">{user.displayName?.split(" ")[0]}</div>
+                <span className="nav-chevron">{panelOpen ? "▲" : "▼"}</span>
+              </button>
+
+              {panelOpen && (
+                <div className="nav-panel animate-panel">
+                  {/* User info */}
+                  <div className="nav-panel-user">
+                    {user.photoURL ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={user.photoURL} alt="" className="nav-panel-avatar" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="nav-panel-avatar nav-avatar-initials">
+                        {user.displayName?.charAt(0).toUpperCase() ?? "U"}
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{user.displayName}</div>
+                      <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{user.email}</div>
+                    </div>
+                  </div>
+
+                  <div className="nav-panel-divider" />
+
+                  {/* Leagues */}
+                  <div className="nav-panel-section-title">Tus Ligas</div>
+
+                  {loadingLeagues ? (
+                    <div className="nav-panel-empty">Cargando ligas...</div>
+                  ) : leagues.length === 0 ? (
+                    <div className="nav-panel-empty">Aún no estás en ninguna liga</div>
+                  ) : (
+                    leagues.map((item) => (
+                      <div key={item.porra.id} className="nav-league-block">
+                        {/* League header (clickable) */}
+                        <button
+                          className="nav-league-header"
+                          onClick={() => toggleLeague(item.porra.id)}
+                        >
+                          <span>🏆 {item.porra.name}</span>
+                          <span className="nav-league-chevron">
+                            {expandedLeague === item.porra.id ? "▲" : "▼"}
+                          </span>
+                        </button>
+
+                        {/* Inline standings */}
+                        {expandedLeague === item.porra.id && (
+                          <div className="nav-league-standings">
+                            {item.loadingScores ? (
+                              <div className="nav-panel-empty">Cargando clasificación...</div>
+                            ) : !item.scores || item.scores.length === 0 ? (
+                              <div className="nav-panel-empty">Sin participantes aún</div>
+                            ) : (
+                              item.scores.map((s, idx) => {
+                                const isExpanded = expandedPlayer === `${item.porra.id}-${s.apuesta.id}`;
+                                const isMe = s.apuesta.id === user?.uid;
+                                return (
+                                  <div key={s.apuesta.id}>
+                                    <button
+                                      className={`nav-player-row ${isMe ? "nav-player-me" : ""}`}
+                                      onClick={() =>
+                                        setExpandedPlayer(isExpanded ? null : `${item.porra.id}-${s.apuesta.id}`)
+                                      }
+                                    >
+                                      <span className="nav-player-rank">
+                                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : idx + 1}
+                                      </span>
+                                      {s.apuesta.userPhoto ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                          src={s.apuesta.userPhoto}
+                                          alt=""
+                                          className="nav-player-avatar"
+                                          referrerPolicy="no-referrer"
+                                        />
+                                      ) : (
+                                        <div className="nav-player-avatar nav-avatar-initials" style={{ fontSize: "0.7rem" }}>
+                                          {s.apuesta.userName.charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                      <span className="nav-player-name">
+                                        {s.apuesta.userName.split(" ")[0]}
+                                        {isMe && <span style={{ color: "var(--gold)", fontSize: "0.7rem", marginLeft: "4px" }}>tú</span>}
+                                      </span>
+                                      <span className="nav-player-pts">{s.total.toFixed(0)}p</span>
+                                    </button>
+
+                                    {/* Player bets detail */}
+                                    {isExpanded && (
+                                      <div className="nav-player-detail">
+                                        <div className="nav-detail-section">
+                                          <div className="nav-detail-title">Equipos</div>
+                                          <div className="nav-detail-flags">
+                                            {s.apuesta.teams.map((code) => (
+                                              <span key={code} title={TEAMS_BY_CODE[code]?.name ?? code}>
+                                                {TEAMS_BY_CODE[code]?.flag ?? "🏳️"}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                        <div className="nav-detail-section">
+                                          <div className="nav-detail-title">Predicciones</div>
+                                          <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+                                            <div>🌟 {s.apuesta.mvp || "—"}</div>
+                                            <div>⚽ {s.apuesta.pichichi || "—"}</div>
+                                            <div>🧤 {s.apuesta.guanteOro || "—"}</div>
+                                            <div>🌱 {s.apuesta.mejorJoven || "—"}</div>
+                                          </div>
+                                        </div>
+                                        {s.detail.length > 0 && (
+                                          <div className="nav-detail-section">
+                                            <div className="nav-detail-title">Puntos conseguidos</div>
+                                            {s.detail.map((d, i) => (
+                                              <div key={i} style={{ fontSize: "0.75rem", color: "var(--green)" }}>✓ {d}</div>
+                                            ))}
+                                          </div>
+                                        )}
+                                        <Link
+                                          href={`/porra/${item.porra.id}`}
+                                          className="btn btn-secondary btn-sm"
+                                          style={{ width: "100%", justifyContent: "center", marginTop: "8px", fontSize: "0.78rem" }}
+                                          onClick={closePanel}
+                                        >
+                                          Ver clasificación completa →
+                                        </Link>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+
+                  <div className="nav-panel-divider" />
+
+                  <Link href="/crear-porra" className="nav-panel-item" onClick={closePanel}>
+                    <span>✨</span> Crear nueva liga
+                  </Link>
+                  <Link href="/unirse" className="nav-panel-item" onClick={closePanel}>
+                    <span>🔗</span> Unirse con código
+                  </Link>
+                  <Link href="/#resultados" className="nav-panel-item" onClick={closePanel}>
+                    <span>⚽</span> Resultados en vivo
+                  </Link>
+                  <Link href="/#grupos" className="nav-panel-item" onClick={closePanel}>
+                    <span>📊</span> Clasificación Grupos
+                  </Link>
+
+                  <div className="nav-panel-divider" />
+
+                  <button className="nav-panel-item nav-panel-danger" onClick={() => { signOutUser(); closePanel(); }}>
+                    <span>👋</span> Cerrar sesión
+                  </button>
                 </div>
               )}
-            </button>
+            </div>
           )}
         </div>
       </nav>
 
-      {/* Sidebar Drawer */}
-      {sidebarOpen && (
-        <div className="sidebar-overlay" onClick={closeSidebar}>
-          <div className="sidebar-drawer animate-drawer" onClick={(e) => e.stopPropagation()}>
-            <div className="sidebar-header">
-              {user ? (
-                <div className="sidebar-user">
-                  {user.photoURL ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={user.photoURL} alt="User" className="sidebar-avatar" />
-                  ) : (
-                    <div className="sidebar-avatar" style={{ background: "var(--gradient-gold)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold" }}>
-                      {user.displayName?.charAt(0).toUpperCase() ?? "U"}
-                    </div>
-                  )}
-                  <div className="sidebar-user-info">
-                    <div className="name">{user.displayName}</div>
-                    <div className="email">{user.email}</div>
-                  </div>
-                </div>
-              ) : (
-                <div className="sidebar-title">Menú</div>
-              )}
-              <button className="sidebar-close" onClick={closeSidebar}>✕</button>
-            </div>
-
-            <div className="sidebar-content">
-              {/* Leages Section */}
-              {user && (
-                <div className="sidebar-section">
-                  <div className="sidebar-section-title">Tus Ligas</div>
-                  {loadingLeagues ? (
-                    <div style={{ padding: "16px", textAlign: "center", fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                      Cargando ligas...
-                    </div>
-                  ) : leagues.length === 0 ? (
-                    <div style={{ padding: "12px", fontSize: "0.9rem", color: "var(--text-muted)" }}>
-                      Aún no estás en ninguna liga
-                    </div>
-                  ) : (
-                    <div className="sidebar-leagues">
-                      {leagues.map((item) => (
-                        <Link
-                          key={item.porra.id}
-                          href={`/porra/${item.porra.id}`}
-                          className="sidebar-league-item"
-                          onClick={closeSidebar}
-                        >
-                          <span style={{ fontWeight: 600 }}>🏆 {item.porra.name}</span>
-                          <span className="badge badge-gold" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>{item.apuesta.totalValue} pts</span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <div className="sidebar-actions">
-                    <Link href="/crear-porra" className="btn btn-secondary btn-sm" onClick={closeSidebar}>
-                      ✨ Crear Liga
-                    </Link>
-                    <Link href="/unirse" className="btn btn-secondary btn-sm" onClick={closeSidebar}>
-                      🔗 Unirse
-                    </Link>
-                  </div>
-                </div>
-              )}
-
-              {/* General Navigation */}
-              <div className="sidebar-section">
-                <div className="sidebar-section-title">Navegación</div>
-                <Link href="/" className="sidebar-nav-item" onClick={closeSidebar}>🏠 Inicio</Link>
-                <Link href="/#resultados" className="sidebar-nav-item" onClick={closeSidebar}>⚽ Resultados en vivo</Link>
-                <Link href="/#grupos" className="sidebar-nav-item" onClick={closeSidebar}>📊 Clasificación Grupos</Link>
-              </div>
-            </div>
-
-            <div className="sidebar-footer">
-              {user ? (
-                <button className="btn btn-secondary" style={{ width: "100%", color: "var(--red)", borderColor: "rgba(232,51,74,0.3)" }} onClick={() => { signOutUser(); closeSidebar(); }}>
-                  Cerrar sesión
-                </button>
-              ) : (
-                <button className="btn btn-primary" style={{ width: "100%" }} onClick={() => { signInWithGoogle(); closeSidebar(); }}>
-                  Entrar con Google
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Backdrop for mobile */}
+      {panelOpen && (
+        <div className="nav-panel-backdrop" onClick={closePanel} />
       )}
     </>
   );
