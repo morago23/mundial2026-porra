@@ -204,17 +204,63 @@ export function mapToMatchResults(matches: WCMatch[]): MatchResult[] {
 
 export function mapToGroupStandings(groups: WCGroup[]): GroupStanding[] {
   const standings: GroupStanding[] = [];
+  const thirdPlaceTeams: {
+    teamCode: string;
+    points: number;
+    goalDiff: number;
+    goalsFor: number;
+  }[] = [];
+
   for (const g of groups) {
-    const sorted = [...g.teams].sort((a, b) => b.points - a.points);
+    // Sort group by points, then goal difference, then goals scored
+    const sorted = [...g.teams].sort((a, b) => {
+      if (a.points !== b.points) return b.points - a.points;
+      const gdA = a.goalsFor - a.goalsAgainst;
+      const gdB = b.goalsFor - b.goalsAgainst;
+      if (gdA !== gdB) return gdB - gdA;
+      return b.goalsFor - a.goalsFor;
+    });
+
     sorted.forEach((team, idx) => {
+      const isThird = idx === 2;
+      
+      if (isThird) {
+        thirdPlaceTeams.push({
+          teamCode: team.code,
+          points: team.points,
+          goalDiff: team.goalsFor - team.goalsAgainst,
+          goalsFor: team.goalsFor,
+        });
+      }
+
       standings.push({
         teamCode: team.code,
         position: idx + 1,
-        advancesToKnockout: idx < 2, // top 2 auto-advance; 3rd best handled separately
-        isThirdAdvancing: false, // updated separately when 3rd-place teams are known
+        advancesToKnockout: idx < 2, // top 2 auto-advance
+        isThirdAdvancing: false, // updated below
       });
     });
   }
+
+  // Determine the 8 best third-place teams
+  thirdPlaceTeams.sort((a, b) => {
+    if (a.points !== b.points) return b.points - a.points;
+    if (a.goalDiff !== b.goalDiff) return b.goalDiff - a.goalDiff;
+    return b.goalsFor - a.goalsFor;
+  });
+
+  const advancingThirdCodes = new Set(
+    thirdPlaceTeams.slice(0, 8).map(t => t.teamCode)
+  );
+
+  // Mark them in the standings
+  for (const standing of standings) {
+    if (standing.position === 3 && advancingThirdCodes.has(standing.teamCode)) {
+      standing.isThirdAdvancing = true;
+      standing.advancesToKnockout = true;
+    }
+  }
+
   return standings;
 }
 
