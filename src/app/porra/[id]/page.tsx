@@ -251,14 +251,6 @@ export default function PorraPage() {
                         {isMe && <span className="league-you-badge">tú</span>}
                         {porra.createdBy === s.apuesta.id && <span className="league-admin-badge">admin</span>}
                       </div>
-                      <div className="league-flags">
-                        {s.apuesta.teams.slice(0, 8).map((code) => (
-                          <span key={code} title={TEAMS_BY_CODE[code]?.name ?? code}>
-                            {TEAMS_BY_CODE[code]?.flag ?? "🏳️"}
-                          </span>
-                        ))}
-                        {s.apuesta.teams.length > 8 && <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>+{s.apuesta.teams.length - 8}</span>}
-                      </div>
                     </div>
                     <div className="league-score">
                       <div className="league-pts">{s.total.toFixed(1)}</div>
@@ -326,19 +318,23 @@ export default function PorraPage() {
               </div>
 
               {/* Points breakdown */}
-              {selectedPlayer.detail.length > 0 && (
-                <div className="modal-section">
-                  <div className="modal-section-title">✅ Puntos conseguidos</div>
-                  <div className="modal-points-list">
+              <div className="modal-section">
+                <div className="modal-section-title">✅ Historial de Puntos</div>
+                {selectedPlayer.detail.length > 0 ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     {selectedPlayer.detail.map((d, i) => (
-                      <div key={i} className="modal-point-item">
-                        <span className="modal-point-dot" />
-                        {d}
+                      <div key={i} style={{ fontSize: "0.85rem", color: "var(--text-secondary)", display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                        <span style={{ color: "var(--gold)", marginTop: "2px" }}>•</span>
+                        <span>{d}</span>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontStyle: "italic" }}>
+                    Aún no ha sumado ningún punto.
+                  </div>
+                )}
+              </div>
 
               {/* Admin remove button */}
               {isAdmin && selectedPlayer.apuesta.id !== user?.uid && (
