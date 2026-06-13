@@ -1407,3 +1407,221 @@ h1, h2, h3, h4 {
   border-radius: 50%;
   background: var(--gold);
 }
+
+/* ── Biwenger Sidebar ── */
+.bw-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  opacity: 0;
+  animation: fadeIn 0.2s forwards;
+}
+
+.bw-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  background: #111111;
+  z-index: 1001;
+  transform: translateX(-100%);
+  animation: slideInLeft 0.3s forwards ease-out;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #222;
+}
+@keyframes slideInLeft {
+  to { transform: translateX(0); }
+}
+
+.bw-sidebar-header {
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #1a1a1a;
+  border-bottom: 1px solid #222;
+}
+
+.bw-sidebar-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.bw-sidebar-info {
+  display: flex;
+  flex-direction: column;
+}
+.bw-sidebar-name {
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 1rem;
+}
+.bw-sidebar-email {
+  color: #888888;
+  font-size: 0.8rem;
+}
+
+.bw-sidebar-menu {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bw-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: #eeeeee;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+}
+.bw-sidebar-item:hover {
+  background: #252525;
+}
+.bw-sidebar-item-danger {
+  color: #ff4444;
+}
+
+.bw-sidebar-leagues {
+  margin-top: 16px;
+}
+.bw-sidebar-leagues-title {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+.bw-league-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #181818;
+  border-radius: 8px;
+  color: white;
+  text-decoration: none;
+  margin-bottom: 8px;
+  border-left: 4px solid #4CAF50;
+}
+.bw-league-btn:hover {
+  background: #222;
+}
+
+
+/* ── Biwenger Standings Table ── */
+.bw-standings-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 16px;
+  color: #aaaaaa;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-bottom: 1px solid #222;
+}
+.bw-standings-header-cols {
+  display: flex;
+  gap: 16px;
+  width: 100px;
+  justify-content: flex-end;
+}
+
+.bw-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #1a1a1a;
+  background: #0d0d0d;
+  color: white;
+  cursor: pointer;
+}
+.bw-row:hover {
+  background: #151515;
+}
+
+.bw-rank-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 40px;
+  flex-shrink: 0;
+}
+.bw-rank-box {
+  background: #ffffff;
+  color: #000000;
+  font-weight: 800;
+  font-size: 0.85rem;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+.bw-rank-box.first { background: #ffffff; }
+.bw-rank-box.second { background: #222222; color: white; border: 1px solid #444; }
+.bw-rank-box.third { background: #222222; color: white; border: 1px solid #444; }
+.bw-rank-box.other { background: transparent; color: #aaa; }
+
+.bw-rank-trend {
+  font-size: 0.65rem;
+  margin-top: 4px;
+  font-weight: 700;
+}
+.bw-trend-up { color: #4CAF50; }
+.bw-trend-down { color: #F44336; }
+.bw-trend-flat { color: #888888; }
+
+.bw-user-col {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  padding-left: 8px;
+}
+.bw-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #333;
+}
+.bw-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bw-score-col {
+  display: flex;
+  gap: 16px;
+  width: 100px;
+  justify-content: flex-end;
+}
+.bw-score-box {
+  background: #1a1a1a;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  min-width: 36px;
+  text-align: center;
+}
