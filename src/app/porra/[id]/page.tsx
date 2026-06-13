@@ -28,9 +28,12 @@ export default function PorraPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [showRules, setShowRules] = useState(false);
 
   const shareUrl =
     typeof window !== "undefined" ? `${window.location.origin}/porra/${id}/apostar` : "";
+  const waText = porra ? encodeURIComponent(`🏆 ¡Únete a mi porra del Mundial 2026!\n\nLiga: ${porra.name}\nCódigo: ${id}\n\nÚnete aquí: ${shareUrl}`) : "";
+  const waUrl = `https://wa.me/?text=${waText}`;
 
   async function load() {
     setLoading(true);
@@ -125,11 +128,14 @@ export default function PorraPage() {
           <p style={{ color: "var(--text-secondary)", marginBottom: "24px" }}>
             Comparte este enlace con tus amigos para que se unan:
           </p>
-          <div className="share-box" style={{ maxWidth: "500px", margin: "0 auto" }}>
-            <span className="share-url">{shareUrl}</span>
+          <div className="share-box" style={{ maxWidth: "500px", margin: "0 auto", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+            <span className="share-url" style={{ flex: 1 }}>{shareUrl}</span>
             <button className="btn btn-primary btn-sm" onClick={copyLink}>
               {copied ? "✓ Copiado" : "Copiar"}
             </button>
+            <a href={waUrl} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ background: "#25D366", color: "white", textDecoration: "none" }}>
+              WhatsApp
+            </a>
           </div>
         </div>
       )}
@@ -161,19 +167,25 @@ export default function PorraPage() {
 
       {/* ── Share link ───────────────────────────────────────── */}
       {!isNew && (
-        <div className="share-box" style={{ marginBottom: "32px" }}>
-          <span className="share-url">{shareUrl}</span>
+        <div className="share-box" style={{ marginBottom: "32px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+          <span className="share-url" style={{ flex: 1 }}>{shareUrl}</span>
           <button className="btn btn-secondary btn-sm" onClick={copyLink}>
             {copied ? "✓" : "Copiar"}
           </button>
+          <a href={waUrl} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ background: "#25D366", color: "white", textDecoration: "none" }}>
+            WhatsApp
+          </a>
         </div>
       )}
 
       {/* ── Clasificación ────────────────────────────────────── */}
-      <div style={{ marginBottom: "16px" }}>
-        <h2 className="section-title">
+      <div style={{ marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2 className="section-title" style={{ margin: 0 }}>
           <span className="icon">🏅</span> Clasificación
         </h2>
+        <button className="btn btn-secondary btn-sm" onClick={() => setShowRules(true)}>
+          📜 Ver reglas
+        </button>
       </div>
 
       {scores.length === 0 ? (
@@ -288,6 +300,44 @@ export default function PorraPage() {
           🔄 Actualizar puntuaciones
         </button>
       </div>
+
+      {/* ── Rules Modal ─────────────────────────────────────── */}
+      {showRules && (
+        <div className="modal-overlay" onClick={() => setShowRules(false)}>
+          <div className="modal animate-in" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h2 style={{ margin: 0 }}>📜 Reglas de Puntuación</h2>
+              <button className="btn" style={{ background: "transparent", border: "none", fontSize: "1.5rem", padding: "0" }} onClick={() => setShowRules(false)}>✕</button>
+            </div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+              {[
+                ["Victoria en grupos", "+3p"],
+                ["Empate en grupos", "+1p"],
+                ["1º de grupo", "+2p"],
+                ["2º de grupo", "+1p"],
+                ["3º que pasa", "+0.5p"],
+                ["Octavos de final", "+3p"],
+                ["Cuartos de final", "+5p"],
+                ["Semifinal", "+8p"],
+                ["Final", "+10p"],
+                ["Campeón", "+12p"],
+                ["3er puesto", "+3p"],
+                ["Premio especial", "+5p"],
+              ].map(([label, pts]) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px", borderRadius: "6px", background: "var(--bg-secondary)" }}>
+                  <span>{label}</span>
+                  <span style={{ color: "var(--gold)", fontWeight: 700 }}>{pts}</span>
+                </div>
+              ))}
+            </div>
+            
+            <button className="btn btn-primary" style={{ width: "100%", marginTop: "24px", justifyContent: "center" }} onClick={() => setShowRules(false)}>
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

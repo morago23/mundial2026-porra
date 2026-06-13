@@ -133,7 +133,7 @@ export default function ApostarPage() {
   }
 
   return (
-    <div className="container" style={{ paddingTop: "40px", paddingBottom: "60px" }}>
+    <div className="container mobile-budget-padding" style={{ paddingTop: "40px", paddingBottom: "60px" }}>
       {/* Back */}
       <Link href={`/porra/${id}`} style={{ color: "var(--text-muted)", fontSize: "0.9rem", display: "inline-flex", alignItems: "center", gap: "6px", marginBottom: "24px" }}>
         ← Ver porra

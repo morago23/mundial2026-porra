@@ -205,7 +205,7 @@ export default function CrearPorraPage() {
 
       {/* ── Step 2: Equipos ─────────────────────────────────────── */}
       {step === 2 && (
-        <div className="animate-in">
+        <div className="animate-in mobile-budget-padding">
           <div className="layout-bet">
             <div>
               <div style={{ marginBottom: "24px" }}>

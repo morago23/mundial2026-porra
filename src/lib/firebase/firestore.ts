@@ -9,6 +9,7 @@ import {
   serverTimestamp,
   Timestamp,
   orderBy,
+  collectionGroup,
 } from "firebase/firestore";
 import { db } from "./config";
 import { nanoid } from "nanoid";
@@ -147,4 +148,39 @@ export async function getApuestas(porraId: string): Promise<Apuesta[]> {
     query(collection(db, "porras", porraId, "apuestas"), orderBy("createdAt", "asc"))
   );
   return snap.docs.map((d) => d.data() as Apuesta);
+}
+
+export async function getUserLeagues(userId: string): Promise<{ porra: Porra; apuesta: Apuesta }[]> {
+  // Query all 'apuestas' subcollections where id == userId
+  const q = query(collectionGroup(db, "apuestas"), where("id", "==", userId));
+  const snap = await getDocs(q);
+  const apuestas = snap.docs.map((d) => d.data() as Apuesta);
+
+  if (apuestas.length === 0) return [];
+
+  // Deduplicate porraIds just in case
+  const porraIds = Array.from(new Set(apuestas.map((a) => a.porraId)));
+
+  // Fetch the corresponding porras
+  const porrasPromises = porraIds.map((id) => getPorra(id));
+  const porrasResults = await Promise.all(porrasPromises);
+
+  const porrasMap = new Map<string, Porra>();
+  porrasResults.forEach((p) => {
+    if (p) porrasMap.set(p.id, p);
+  });
+
+  // Combine them
+  const result: { porra: Porra; apuesta: Apuesta }[] = [];
+  for (const apuesta of apuestas) {
+    const porra = porrasMap.get(apuesta.porraId);
+    if (porra) {
+      result.push({ porra, apuesta });
+    }
+  }
+
+  // Sort by created At descending (most recent league joined first)
+  result.sort((a, b) => b.apuesta.createdAt.toMillis() - a.apuesta.createdAt.toMillis());
+
+  return result;
 }

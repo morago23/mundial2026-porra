@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { signInWithGoogle, signOutUser } from "@/lib/firebase/auth";
+import { signInWithGoogle } from "@/lib/firebase/auth";
 import { useState, useEffect } from "react";
+import UserDropdown from "./UserDropdown";
 
 export default function Navbar() {
   const { user, loading } = useAuth();
@@ -50,23 +51,7 @@ export default function Navbar() {
           </button>
           
           {loading ? null : user ? (
-            <>
-              {user.photoURL && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName ?? "User"}
-                  className="avatar"
-                />
-              )}
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => signOutUser()}
-                style={{ padding: "8px 16px", fontSize: "0.85rem" }}
-              >
-                Salir
-              </button>
-            </>
+            <UserDropdown user={user} />
           ) : (
             <button
               className="btn btn-primary btn-sm"
