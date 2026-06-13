@@ -119,8 +119,24 @@ export function calculateScore(
   }
 
   // --- GROUP POSITION POINTS ---
+  // A group has 6 matches. We only award points if all 6 are finished.
+  const finishedGroupMatches = new Map<string, number>();
+  for (const match of matches) {
+    if (match.stage === "GROUP" && match.status === "FINISHED") {
+      const group = TEAMS_BY_CODE[match.homeTeam]?.group || match.group;
+      if (group) {
+        finishedGroupMatches.set(group, (finishedGroupMatches.get(group) || 0) + 1);
+      }
+    }
+  }
+
   for (const standing of standings) {
     if (!selectedTeams.has(standing.teamCode)) continue;
+    const teamGroup = TEAMS_BY_CODE[standing.teamCode]?.group;
+    if (!teamGroup || (finishedGroupMatches.get(teamGroup) || 0) < 6) {
+      continue; // Group is not finished yet
+    }
+
     const teamName = TEAMS_BY_CODE[standing.teamCode]?.name ?? standing.teamCode;
 
     if (standing.position === 1) {
