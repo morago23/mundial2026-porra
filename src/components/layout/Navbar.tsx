@@ -85,79 +85,76 @@ export default function Navbar() {
             </button>
           )}
 
-          {!loading && user && (
-            <div className="nav-user-area">
-              {panelOpen && (
-                <div className="nav-panel animate-panel">
-                  {/* User info */}
-                  <div className="nav-panel-user">
-                    {user.photoURL ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={user.photoURL} alt="" className="nav-panel-avatar" referrerPolicy="no-referrer" />
-                    ) : (
-                      <div className="nav-panel-avatar nav-avatar-initials">
-                        {user.displayName?.charAt(0).toUpperCase() ?? "U"}
-                      </div>
-                    )}
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{user.displayName}</div>
-                      <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{user.email}</div>
-                    </div>
-                  </div>
-
-                  <div className="nav-panel-divider" />
-
-                  {/* Leagues */}
-                  <div className="nav-panel-section-title">Tus Ligas</div>
-
-                  {loadingLeagues ? (
-                    <div className="nav-panel-empty">Cargando ligas...</div>
-                  ) : leagues.length === 0 ? (
-                    <div className="nav-panel-empty">Aún no estás en ninguna liga</div>
-                  ) : (
-                    leagues.map((item) => (
-                      <Link
-                        href={`/porra/${item.porra.id}`}
-                        key={item.porra.id}
-                        className="nav-panel-item"
-                        style={{ border: "1px solid rgba(201,162,39,0.15)", marginBottom: "4px" }}
-                        onClick={closePanel}
-                      >
-                        <span>🏆</span> <span style={{ flex: 1, fontWeight: 600 }}>{item.porra.name}</span>
-                      </Link>
-                    ))
-                  )}
-
-                  <div className="nav-panel-divider" />
-
-                  <Link href="/crear-porra" className="nav-panel-item" onClick={closePanel}>
-                    <span>✨</span> Crear nueva liga
-                  </Link>
-                  <Link href="/unirse" className="nav-panel-item" onClick={closePanel}>
-                    <span>🔗</span> Unirse con código
-                  </Link>
-                  <Link href="/#resultados" className="nav-panel-item" onClick={closePanel}>
-                    <span>⚽</span> Resultados en vivo
-                  </Link>
-                  <Link href="/#grupos" className="nav-panel-item" onClick={closePanel}>
-                    <span>📊</span> Clasificación Grupos
-                  </Link>
-
-                  <div className="nav-panel-divider" />
-
-                  <button className="nav-panel-item nav-panel-danger" onClick={() => { signOutUser(); closePanel(); }}>
-                    <span>👋</span> Cerrar sesión
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </nav>
 
-      {/* Backdrop for mobile */}
-      {panelOpen && (
-        <div className="nav-panel-backdrop" onClick={closePanel} />
+      {/* Sidebar Panel and Backdrop */}
+      {panelOpen && user && (
+        <>
+          <div className="nav-panel-backdrop" onClick={closePanel} />
+          
+          <div className="nav-panel animate-panel">
+            {/* User info */}
+            <div className="nav-panel-user">
+              {user.photoURL ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.photoURL} alt="" className="nav-panel-avatar" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="nav-panel-avatar nav-avatar-initials">
+                  {user.displayName?.charAt(0).toUpperCase() ?? "U"}
+                </div>
+              )}
+              <div>
+                <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{user.displayName}</div>
+                <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{user.email}</div>
+              </div>
+            </div>
+
+            <div className="nav-panel-divider" />
+
+            {/* Leagues */}
+            <div className="nav-panel-section-title">Tus Ligas</div>
+
+            {loadingLeagues ? (
+              <div className="nav-panel-empty">Cargando ligas...</div>
+            ) : leagues.length === 0 ? (
+              <div className="nav-panel-empty">Aún no estás en ninguna liga</div>
+            ) : (
+              leagues.map((item) => (
+                <Link
+                  href={`/porra/${item.porra.id}`}
+                  key={item.porra.id}
+                  className="nav-panel-item"
+                  style={{ border: "1px solid rgba(201,162,39,0.15)", marginBottom: "4px" }}
+                  onClick={closePanel}
+                >
+                  <span>🏆</span> <span style={{ flex: 1, fontWeight: 600 }}>{item.porra.name}</span>
+                </Link>
+              ))
+            )}
+
+            <div className="nav-panel-divider" />
+
+            <Link href="/crear-porra" className="nav-panel-item" onClick={closePanel}>
+              <span>✨</span> Crear nueva liga
+            </Link>
+            <Link href="/unirse" className="nav-panel-item" onClick={closePanel}>
+              <span>🔗</span> Unirse con código
+            </Link>
+            <Link href="/#resultados" className="nav-panel-item" onClick={closePanel}>
+              <span>⚽</span> Resultados en vivo
+            </Link>
+            <Link href="/#grupos" className="nav-panel-item" onClick={closePanel}>
+              <span>📊</span> Clasificación Grupos
+            </Link>
+
+            <div className="nav-panel-divider" />
+
+            <button className="nav-panel-item nav-panel-danger" onClick={() => { signOutUser(); closePanel(); }}>
+              <span>👋</span> Cerrar sesión
+            </button>
+          </div>
+        </>
       )}
     </>
   );
