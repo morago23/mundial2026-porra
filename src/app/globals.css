@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;700;900&display=swap');
 
 /* ── Radical Modern Redesign (Glassmorphism & Bento) ── */
 
@@ -28,6 +27,14 @@
 
   --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.04);
   --shadow-floating: 0 20px 40px rgba(0, 0, 0, 0.08);
+
+  --gold: #fbbf24;
+  --red: #ef4444;
+  --green: #10b981;
+  --border: rgba(0, 0, 0, 0.08);
+  --bg-secondary: rgba(241, 245, 249, 0.9);
+  --bg-primary: #f0f4f8;
+  --gradient-gold: linear-gradient(135deg, #f59e0b, #fbbf24);
 }
 
 [data-theme='dark'] {
@@ -52,6 +59,14 @@
 
   --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.5);
   --shadow-floating: 0 20px 40px rgba(0, 0, 0, 0.8);
+
+  --gold: #f59e0b;
+  --red: #ef4444;
+  --green: #10b981;
+  --border: rgba(255, 255, 255, 0.08);
+  --bg-secondary: rgba(39, 39, 42, 0.8);
+  --bg-primary: #09090b;
+  --gradient-gold: linear-gradient(135deg, #d97706, #f59e0b);
 }
 
 /* ── Base ── */
@@ -1414,6 +1429,172 @@ h1, h2, h3, h4 {
   height: 6px;
   border-radius: 50%;
   background: var(--gold);
+}
+
+/* ── Missing Utility Classes ── */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.card-gold {
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 30px rgba(245, 158, 11, 0.08);
+}
+
+.animate-in {
+  animation: fadeSlideIn 0.5s ease-out;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.share-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.share-url {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Modal Base ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  border-radius: 24px;
+  padding: 28px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: var(--shadow-floating);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.modal-body {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* ── Loading & Empty States ── */
+.loading-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-glass);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.empty-state-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+/* ── Footer ── */
+.footer {
+  text-align: center;
+  padding: 32px 20px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  border-top: 1px solid var(--border-glass);
+  margin-top: 60px;
 }
 
 @media (max-width: 600px) {

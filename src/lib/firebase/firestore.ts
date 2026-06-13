@@ -13,6 +13,7 @@ import {
   collectionGroup,
   arrayUnion,
   arrayRemove,
+  increment,
 } from "firebase/firestore";
 import { db } from "./config";
 import { nanoid } from "nanoid";
@@ -147,13 +148,9 @@ export async function saveApuesta(
     leagues: arrayUnion(porraId)
   }, { merge: true });
 
-  // Increment member count
+  // Increment member count atomically
   const porraRef = doc(db, "porras", porraId);
-  const porraSnap = await getDoc(porraRef);
-  if (porraSnap.exists()) {
-    const current = porraSnap.data().memberCount ?? 0;
-    await setDoc(porraRef, { memberCount: current + 1 }, { merge: true });
-  }
+  await setDoc(porraRef, { memberCount: increment(1) }, { merge: true });
 }
 
 export async function getApuestas(porraId: string): Promise<Apuesta[]> {
@@ -269,9 +266,8 @@ export async function removeUserFromLeague(porraId: string, targetUserId: string
   // Remove from user's leagues index
   await setDoc(doc(db, "users", targetUserId), { leagues: arrayRemove(porraId) }, { merge: true }).catch(() => {});
 
-  // Decrement member count
-  const current = porraSnap.data().memberCount ?? 1;
-  await setDoc(doc(db, "porras", porraId), { memberCount: Math.max(0, current - 1) }, { merge: true });
+  // Decrement member count atomically
+  await setDoc(doc(db, "porras", porraId), { memberCount: increment(-1) }, { merge: true });
 }
 
 /** User leaves a league voluntarily */
@@ -283,8 +279,8 @@ export async function leaveLeague(porraId: string, userId: string): Promise<void
   await deleteDoc(doc(db, "porras", porraId, "apuestas", userId));
   await setDoc(doc(db, "users", userId), { leagues: arrayRemove(porraId) }, { merge: true }).catch(() => {});
 
-  const current = porraSnap.data().memberCount ?? 1;
-  await setDoc(doc(db, "porras", porraId), { memberCount: Math.max(0, current - 1) }, { merge: true });
+  // Decrement member count atomically
+  await setDoc(doc(db, "porras", porraId), { memberCount: increment(-1) }, { merge: true });
 }
 
 /** Creator deletes the entire league and all bets */

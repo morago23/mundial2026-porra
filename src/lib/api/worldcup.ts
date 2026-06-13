@@ -1,7 +1,7 @@
 import { MatchResult, GroupStanding } from "@/lib/scoring/calculator";
 import { resolveTeamCode } from "@/lib/data/teams";
 
-const API_BASE = "https://worldcup26.ir/api";
+
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in ms
 
 interface CacheEntry<T> {
@@ -183,6 +183,7 @@ export function mapToMatchResults(matches: WCMatch[]): MatchResult[] {
     else if (stageRaw.includes("semi")) stage = "SF";
     else if (stageRaw.includes("quarter")) stage = "QF";
     else if (stageRaw.includes("round of 16") || stageRaw.includes("octavo")) stage = "R16";
+    else if (stageRaw.includes("round of 32") || stageRaw.includes("32avos")) stage = "R32";
 
     let status: MatchResult["status"] = "SCHEDULED";
     const statusRaw = (m.status ?? "").toLowerCase();

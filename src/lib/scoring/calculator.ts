@@ -6,8 +6,9 @@ export interface MatchResult {
   homeScore: number | null;
   awayScore: number | null;
   status: "SCHEDULED" | "LIVE" | "FINISHED";
-  stage: "GROUP" | "R16" | "QF" | "SF" | "THIRD" | "FINAL";
+  stage: "GROUP" | "R32" | "R16" | "QF" | "SF" | "THIRD" | "FINAL";
   group?: string;
+  penaltyWinner?: string; // team code of penalty shootout winner
 }
 
 export interface GroupStanding {
@@ -48,6 +49,7 @@ const PTS = {
   FIRST: 2,
   SECOND: 1,
   THIRD_ADV: 0.5,
+  R32: 2,
   R16: 3,
   QF: 5,
   SF: 8,
@@ -135,6 +137,7 @@ export function calculateScore(
 
   // --- KNOCKOUT STAGE POINTS ---
   const stagePoints: Record<string, number> = {
+    R32: PTS.R32,
     R16: PTS.R16,
     QF: PTS.QF,
     SF: PTS.SF,
@@ -143,6 +146,7 @@ export function calculateScore(
   };
 
   const stageNames: Record<string, string> = {
+    R32: "32avos de final",
     R16: "Octavos de final",
     QF: "Cuartos de final",
     SF: "Semifinal",
@@ -158,18 +162,33 @@ export function calculateScore(
     const stagePts = stagePoints[match.stage] ?? 0;
     const stageName = stageNames[match.stage] ?? match.stage;
 
-    // Teams that PLAYED in this round get points
-    if (selectedTeams.has(match.homeTeam)) {
-      breakdown.knockoutPoints += stagePts;
-      breakdown.detail.push(
-        `+${stagePts}p ${stageName} ${TEAMS_BY_CODE[match.homeTeam]?.name ?? match.homeTeam}`
-      );
-    }
-    if (selectedTeams.has(match.awayTeam)) {
-      breakdown.knockoutPoints += stagePts;
-      breakdown.detail.push(
-        `+${stagePts}p ${stageName} ${TEAMS_BY_CODE[match.awayTeam]?.name ?? match.awayTeam}`
-      );
+    // For THIRD place match, only the winner gets points
+    if (match.stage === "THIRD") {
+      let thirdWinner: string | null = null;
+      if (match.homeScore! > match.awayScore!) thirdWinner = match.homeTeam;
+      else if (match.awayScore! > match.homeScore!) thirdWinner = match.awayTeam;
+      else if (match.penaltyWinner) thirdWinner = match.penaltyWinner;
+
+      if (thirdWinner && selectedTeams.has(thirdWinner)) {
+        breakdown.knockoutPoints += stagePts;
+        breakdown.detail.push(
+          `+${stagePts}p ${stageName} ${TEAMS_BY_CODE[thirdWinner]?.name ?? thirdWinner}`
+        );
+      }
+    } else {
+      // All other knockout rounds: both teams that PLAYED get points
+      if (selectedTeams.has(match.homeTeam)) {
+        breakdown.knockoutPoints += stagePts;
+        breakdown.detail.push(
+          `+${stagePts}p ${stageName} ${TEAMS_BY_CODE[match.homeTeam]?.name ?? match.homeTeam}`
+        );
+      }
+      if (selectedTeams.has(match.awayTeam)) {
+        breakdown.knockoutPoints += stagePts;
+        breakdown.detail.push(
+          `+${stagePts}p ${stageName} ${TEAMS_BY_CODE[match.awayTeam]?.name ?? match.awayTeam}`
+        );
+      }
     }
 
     // Champion bonus
@@ -177,7 +196,8 @@ export function calculateScore(
       let winner: string | null = null;
       if (match.homeScore > match.awayScore) winner = match.homeTeam;
       else if (match.awayScore > match.homeScore) winner = match.awayTeam;
-      // penalties would be handled via metadata; for now use score
+      else if (match.penaltyWinner) winner = match.penaltyWinner;
+      // TODO: if no penaltyWinner metadata is available and scores are equal, winner remains null
 
       if (winner && selectedTeams.has(winner)) {
         breakdown.knockoutPoints += PTS.CHAMPION;

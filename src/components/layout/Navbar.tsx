@@ -19,8 +19,14 @@ export default function Navbar() {
   const [loadingLeagues, setLoadingLeagues] = useState(false);
 
   useEffect(() => {
-    const current = document.documentElement.getAttribute("data-theme") || "light";
-    setTheme(current);
+    const saved = localStorage.getItem("theme");
+    if (saved) {
+      document.documentElement.setAttribute("data-theme", saved);
+      setTheme(saved);
+    } else {
+      const current = document.documentElement.getAttribute("data-theme") || "light";
+      setTheme(current);
+    }
   }, []);
 
   // Load leagues when panel opens
