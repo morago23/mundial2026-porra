@@ -184,107 +184,15 @@ export default function Navbar() {
                     <div className="nav-panel-empty">Aún no estás en ninguna liga</div>
                   ) : (
                     leagues.map((item) => (
-                      <div key={item.porra.id} className="nav-league-block">
-                        {/* League header (clickable) */}
-                        <button
-                          className="nav-league-header"
-                          onClick={() => toggleLeague(item.porra.id)}
-                        >
-                          <span>🏆 {item.porra.name}</span>
-                          <span className="nav-league-chevron">
-                            {expandedLeague === item.porra.id ? "▲" : "▼"}
-                          </span>
-                        </button>
-
-                        {/* Inline standings */}
-                        {expandedLeague === item.porra.id && (
-                          <div className="nav-league-standings">
-                            {item.loadingScores ? (
-                              <div className="nav-panel-empty">Cargando clasificación...</div>
-                            ) : !item.scores || item.scores.length === 0 ? (
-                              <div className="nav-panel-empty">Sin participantes aún</div>
-                            ) : (
-                              item.scores.map((s, idx) => {
-                                const isExpanded = expandedPlayer === `${item.porra.id}-${s.apuesta.id}`;
-                                const isMe = s.apuesta.id === user?.uid;
-                                return (
-                                  <div key={s.apuesta.id}>
-                                    <button
-                                      className={`nav-player-row ${isMe ? "nav-player-me" : ""}`}
-                                      onClick={() =>
-                                        setExpandedPlayer(isExpanded ? null : `${item.porra.id}-${s.apuesta.id}`)
-                                      }
-                                    >
-                                      <span className="nav-player-rank">
-                                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : idx + 1}
-                                      </span>
-                                      {s.apuesta.userPhoto ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                          src={s.apuesta.userPhoto}
-                                          alt=""
-                                          className="nav-player-avatar"
-                                          referrerPolicy="no-referrer"
-                                        />
-                                      ) : (
-                                        <div className="nav-player-avatar nav-avatar-initials" style={{ fontSize: "0.7rem" }}>
-                                          {s.apuesta.userName.charAt(0).toUpperCase()}
-                                        </div>
-                                      )}
-                                      <span className="nav-player-name">
-                                        {s.apuesta.userName.split(" ")[0]}
-                                        {isMe && <span style={{ color: "var(--gold)", fontSize: "0.7rem", marginLeft: "4px" }}>tú</span>}
-                                      </span>
-                                      <span className="nav-player-pts">{s.total.toFixed(0)}p</span>
-                                    </button>
-
-                                    {/* Player bets detail */}
-                                    {isExpanded && (
-                                      <div className="nav-player-detail">
-                                        <div className="nav-detail-section">
-                                          <div className="nav-detail-title">Equipos</div>
-                                          <div className="nav-detail-flags">
-                                            {s.apuesta.teams.map((code) => (
-                                              <span key={code} title={TEAMS_BY_CODE[code]?.name ?? code}>
-                                                {TEAMS_BY_CODE[code]?.flag ?? "🏳️"}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        </div>
-                                        <div className="nav-detail-section">
-                                          <div className="nav-detail-title">Predicciones</div>
-                                          <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
-                                            <div>🌟 {s.apuesta.mvp || "—"}</div>
-                                            <div>⚽ {s.apuesta.pichichi || "—"}</div>
-                                            <div>🧤 {s.apuesta.guanteOro || "—"}</div>
-                                            <div>🌱 {s.apuesta.mejorJoven || "—"}</div>
-                                          </div>
-                                        </div>
-                                        {s.detail.length > 0 && (
-                                          <div className="nav-detail-section">
-                                            <div className="nav-detail-title">Puntos conseguidos</div>
-                                            {s.detail.map((d, i) => (
-                                              <div key={i} style={{ fontSize: "0.75rem", color: "var(--green)" }}>✓ {d}</div>
-                                            ))}
-                                          </div>
-                                        )}
-                                        <Link
-                                          href={`/porra/${item.porra.id}`}
-                                          className="btn btn-secondary btn-sm"
-                                          style={{ width: "100%", justifyContent: "center", marginTop: "8px", fontSize: "0.78rem" }}
-                                          onClick={closePanel}
-                                        >
-                                          Ver clasificación completa →
-                                        </Link>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      <Link
+                        href={`/porra/${item.porra.id}`}
+                        key={item.porra.id}
+                        className="nav-panel-item"
+                        style={{ border: "1px solid rgba(201,162,39,0.15)", marginBottom: "4px" }}
+                        onClick={closePanel}
+                      >
+                        <span>🏆</span> {item.porra.name}
+                      </Link>
                     ))
                   )}
 
