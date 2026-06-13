@@ -10,6 +10,7 @@ import { fetchMatches, fetchGroups, mapToMatchResults, mapToGroupStandings } fro
 import { calculateScore } from "@/lib/scoring/calculator";
 import { TEAMS_BY_CODE } from "@/lib/data/teams";
 import { useAuth } from "@/contexts/AuthContext";
+import EvolutionChart from "@/components/EvolutionChart";
 
 interface PlayerScore {
   apuesta: Apuesta;
@@ -29,6 +30,8 @@ export default function PorraPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerScore | null>(null);
+  const [evolutionData, setEvolutionData] = useState<any[]>([]);
+  const [evolutionPlayers, setEvolutionPlayers] = useState<string[]>([]);
   const [showRules, setShowRules] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [adminAction, setAdminAction] = useState<null | { type: "remove" | "delete" | "leave"; userId?: string; name?: string }>(null);
@@ -66,6 +69,58 @@ export default function PorraPage() {
 
       scored.sort((a, b) => b.total - a.total);
       setScores(scored);
+
+      // Evolution Graph Logic
+      const finishedMatches = matchResults.filter(m => m.status === "FINISHED");
+      if (finishedMatches.length > 0 && scored.length > 0) {
+        const top5 = scored.slice(0, 5);
+        const playerNames = top5.map(s => s.apuesta.userName);
+        
+        const evData: any[] = [{ name: "0", ...Object.fromEntries(playerNames.map(n => [n, 0])) }];
+        const currentPts: Record<string, number> = Object.fromEntries(playerNames.map(n => [n, 0]));
+        
+        for (let i = 0; i < finishedMatches.length; i++) {
+          const match = finishedMatches[i];
+          
+          top5.forEach(s => {
+            const bet = s.apuesta;
+            const teams = new Set(bet.teams);
+            const name = bet.userName;
+            
+            if (match.stage === "GROUP") {
+               if (match.homeScore !== null && match.awayScore !== null) {
+                 if (match.homeScore > match.awayScore && teams.has(match.homeTeam)) currentPts[name] += 3;
+                 else if (match.awayScore > match.homeScore && teams.has(match.awayTeam)) currentPts[name] += 3;
+                 else if (match.homeScore === match.awayScore) {
+                   if (teams.has(match.homeTeam)) currentPts[name] += 1;
+                   if (teams.has(match.awayTeam)) currentPts[name] += 1;
+                 }
+               }
+            } else {
+               const stagePts: Record<string, number> = { R16: 3, QF: 5, SF: 8, FINAL: 10, THIRD: 3 };
+               const pts = stagePts[match.stage] || 0;
+               if (teams.has(match.homeTeam)) currentPts[name] += pts;
+               if (teams.has(match.awayTeam)) currentPts[name] += pts;
+               
+               if (match.stage === "FINAL" && match.homeScore !== null && match.awayScore !== null) {
+                 const winner = match.homeScore > match.awayScore ? match.homeTeam : (match.awayScore > match.homeScore ? match.awayTeam : null);
+                 if (winner && teams.has(winner)) currentPts[name] += 12;
+               }
+            }
+          });
+
+          if ((i + 1) % 4 === 0 || i === finishedMatches.length - 1) {
+             evData.push({ name: `P${i + 1}`, ...currentPts });
+          }
+        }
+        
+        const finalPoint: any = { name: "Final" };
+        top5.forEach(s => { finalPoint[s.apuesta.userName] = s.total; });
+        evData.push(finalPoint);
+        
+        setEvolutionData(evData);
+        setEvolutionPlayers(playerNames);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -217,6 +272,10 @@ export default function PorraPage() {
           </div>
         ) : (
           <>
+            {evolutionData.length > 0 && (
+              <EvolutionChart data={evolutionData} playerNames={evolutionPlayers} />
+            )}
+
             {/* ── Clasificación Completa Normal ───────────────────────── */}
             <div className="card" style={{ padding: 0, overflow: "hidden" }}>
               <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
