@@ -106,11 +106,45 @@ export function calcTotalValue(codes: string[]): number {
   }, 0);
 }
 
+const ALIASES: Record<string, string> = {
+  "usa": "USA",
+  "united states": "USA",
+  "united states of america": "USA",
+  "south korea": "KOR",
+  "korea republic": "KOR",
+  "côte d'ivoire": "CIV",
+  "ivory coast": "CIV",
+  "turkey": "TUR",
+  "türkiye": "TUR",
+  "czech republic": "CZE",
+  "czechia": "CZE",
+  "cape verde": "CPV",
+  "cabo verde": "CPV",
+  "dr congo": "COD",
+  "congo dr": "COD",
+  "democratic republic of the congo": "COD",
+  "ir iran": "IRN",
+  "iran": "IRN",
+  "holland": "NED",
+  "netherlands": "NED",
+  "bosnia & herzegovina": "BIH",
+  "bosnia": "BIH",
+  "curaçao": "CUW",
+  "curacao": "CUW"
+};
+
 /** Resolve an API team name (could be apiName or already a code) to an internal code */
 export function resolveTeamCode(apiNameOrCode: string): string {
   if (!apiNameOrCode) return apiNameOrCode;
   // Already a known code?
   if (TEAMS_BY_CODE[apiNameOrCode]) return apiNameOrCode;
+  
+  const lower = apiNameOrCode.toLowerCase();
   // Try lookup by apiName (case-insensitive)
-  return API_NAME_TO_CODE[apiNameOrCode.toLowerCase()] ?? apiNameOrCode;
+  if (API_NAME_TO_CODE[lower]) return API_NAME_TO_CODE[lower];
+  
+  // Try aliases
+  if (ALIASES[lower]) return ALIASES[lower];
+
+  return apiNameOrCode;
 }
