@@ -1,6 +1,7 @@
 import { TEAMS_BY_CODE } from "@/lib/data/teams";
 
 export interface MatchResult {
+  id?: string;
   homeTeam: string; // team code
   awayTeam: string;
   homeScore: number | null;
@@ -38,6 +39,7 @@ export interface ScoreBreakdown {
   positionPoints: number; // 1st/2nd/3rd group bonuses
   knockoutPoints: number; // R16, QF, SF, Final
   specialPoints: number; // MVP, Pichichi, etc.
+  predictionPoints: number; // Quiniela points
   total: number;
   detail: string[];
 }
@@ -57,20 +59,24 @@ const PTS = {
   CHAMPION: 12,
   THIRD_PLACE: 3,
   SPECIAL: 5,
+  PREDICTION_EXACT: 3,
+  PREDICTION_TENDENCY: 1,
 };
 
 export function calculateScore(
-  bet: Bet,
+  bet: Bet | null,
+  predictions: Record<string, { homeScore: number | null; awayScore: number | null }> | null,
   matches: MatchResult[],
   standings: GroupStanding[],
   realAwards: Partial<SpecialAwards>
 ): ScoreBreakdown {
-  const selectedTeams = new Set(bet.teams);
+  const selectedTeams = new Set(bet?.teams || []);
   const breakdown: ScoreBreakdown = {
     matchPoints: 0,
     positionPoints: 0,
     knockoutPoints: 0,
     specialPoints: 0,
+    predictionPoints: 0,
     total: 0,
     detail: [],
   };
@@ -225,15 +231,16 @@ export function calculateScore(
   }
 
   // --- SPECIAL AWARD POINTS ---
-  if (realAwards.mvp && bet.mvp.toLowerCase() === realAwards.mvp.toLowerCase()) {
+  if (bet && realAwards.mvp && bet.mvp.toLowerCase() === realAwards.mvp.toLowerCase()) {
     breakdown.specialPoints += PTS.SPECIAL;
     breakdown.detail.push(`+${PTS.SPECIAL}p MVP acertado (${bet.mvp})`);
   }
-  if (realAwards.pichichi && bet.pichichi.toLowerCase() === realAwards.pichichi.toLowerCase()) {
+  if (bet && realAwards.pichichi && bet.pichichi.toLowerCase() === realAwards.pichichi.toLowerCase()) {
     breakdown.specialPoints += PTS.SPECIAL;
     breakdown.detail.push(`+${PTS.SPECIAL}p Pichichi acertado (${bet.pichichi})`);
   }
   if (
+    bet &&
     realAwards.guanteOro &&
     bet.guanteOro.toLowerCase() === realAwards.guanteOro.toLowerCase()
   ) {
@@ -241,6 +248,7 @@ export function calculateScore(
     breakdown.detail.push(`+${PTS.SPECIAL}p Guante de Oro acertado (${bet.guanteOro})`);
   }
   if (
+    bet &&
     realAwards.mejorJoven &&
     bet.mejorJoven.toLowerCase() === realAwards.mejorJoven.toLowerCase()
   ) {
@@ -250,11 +258,43 @@ export function calculateScore(
     );
   }
 
+  // --- PREDICTION (QUINIELA) POINTS ---
+  if (predictions) {
+    // Note: To match predictions with matches, we need match ID.
+    // However, MatchResult in this file doesn't have an 'id' field!
+    // We must update MatchResult to include id.
+    for (const match of matches) {
+      if (match.status !== "FINISHED") continue;
+      if (match.homeScore === null || match.awayScore === null) continue;
+      
+      const pred = predictions[match.id as string];
+      if (!pred || pred.homeScore === null || pred.awayScore === null) continue;
+
+      const hName = TEAMS_BY_CODE[match.homeTeam]?.name ?? match.homeTeam;
+      const aName = TEAMS_BY_CODE[match.awayTeam]?.name ?? match.awayTeam;
+
+      if (pred.homeScore === match.homeScore && pred.awayScore === match.awayScore) {
+        breakdown.predictionPoints += PTS.PREDICTION_EXACT;
+        breakdown.detail.push(`+${PTS.PREDICTION_EXACT}p Pleno ${hName} ${match.homeScore}-${match.awayScore} ${aName}`);
+      } else {
+        const actualDiff = match.homeScore - match.awayScore;
+        const predDiff = pred.homeScore - pred.awayScore;
+        
+        // Correct tendency: home win, away win, or draw
+        if ((actualDiff > 0 && predDiff > 0) || (actualDiff < 0 && predDiff < 0) || (actualDiff === 0 && predDiff === 0)) {
+          breakdown.predictionPoints += PTS.PREDICTION_TENDENCY;
+          breakdown.detail.push(`+${PTS.PREDICTION_TENDENCY}p Tendencia ${hName} vs ${aName}`);
+        }
+      }
+    }
+  }
+
   breakdown.total =
     breakdown.matchPoints +
     breakdown.positionPoints +
     breakdown.knockoutPoints +
-    breakdown.specialPoints;
+    breakdown.specialPoints +
+    breakdown.predictionPoints;
 
   return breakdown;
 }

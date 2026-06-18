@@ -191,6 +191,7 @@ export function mapToMatchResults(matches: WCMatch[]): MatchResult[] {
     else if (statusRaw === "live" || statusRaw === "in_play") status = "LIVE";
 
     return {
+      id: m.id.toString(),
       homeTeam: m.homeTeam.code,
       awayTeam: m.awayTeam.code,
       homeScore: m.homeScore,

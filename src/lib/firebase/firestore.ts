@@ -20,6 +20,11 @@ import { nanoid } from "nanoid";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+export interface PorraSettings {
+  enableFantasy: boolean;
+  enablePredictor: boolean;
+}
+
 export interface Porra {
   id: string;
   name: string;
@@ -28,6 +33,7 @@ export interface Porra {
   createdByPhoto: string;
   createdAt: Timestamp;
   memberCount: number;
+  settings?: PorraSettings;
   // Real awards (admin sets these at end of tournament)
   awards?: {
     mvp?: string;
@@ -35,6 +41,19 @@ export interface Porra {
     guanteOro?: string;
     mejorJoven?: string;
   };
+}
+
+export interface MatchPrediction {
+  homeScore: number | null;
+  awayScore: number | null;
+}
+
+export interface UserPredictions {
+  userId: string;
+  userName: string;
+  userPhoto: string;
+  predictions: Record<string, MatchPrediction>;
+  updatedAt: Timestamp;
 }
 
 export interface Apuesta {
@@ -58,7 +77,8 @@ export async function createPorra(
   userId: string,
   userName: string,
   userPhoto: string,
-  firstBet: Omit<Apuesta, "id" | "porraId" | "userName" | "userPhoto" | "createdAt">
+  firstBet: Omit<Apuesta, "id" | "porraId" | "userName" | "userPhoto" | "createdAt"> | null,
+  settings: PorraSettings = { enableFantasy: true, enablePredictor: true }
 ): Promise<string> {
   const id = nanoid(10);
 
@@ -71,19 +91,22 @@ export async function createPorra(
     createdByPhoto: userPhoto,
     createdAt: serverTimestamp(),
     memberCount: 1,
+    settings,
     awards: {},
   });
 
-  // Save the creator's bet
-  const betRef = doc(db, "porras", id, "apuestas", userId);
-  await setDoc(betRef, {
-    id: userId,
-    porraId: id,
-    userName,
-    userPhoto,
-    ...firstBet,
-    createdAt: serverTimestamp(),
-  });
+  // Save the creator's bet if provided
+  if (firstBet && settings.enableFantasy) {
+    const betRef = doc(db, "porras", id, "apuestas", userId);
+    await setDoc(betRef, {
+      id: userId,
+      porraId: id,
+      userName,
+      userPhoto,
+      ...firstBet,
+      createdAt: serverTimestamp(),
+    });
+  }
 
   // Track the league in the user's document
   await setDoc(doc(db, "users", userId), {
@@ -97,6 +120,10 @@ export async function getPorra(id: string): Promise<Porra | null> {
   const snap = await getDoc(doc(db, "porras", id));
   if (!snap.exists()) return null;
   return snap.data() as Porra;
+}
+
+export async function updatePorraSettings(id: string, settings: PorraSettings): Promise<void> {
+  await setDoc(doc(db, "porras", id), { settings }, { merge: true });
 }
 
 export async function getMyPorras(userId: string): Promise<Porra[]> {
@@ -272,15 +299,21 @@ export async function removeUserFromLeague(porraId: string, targetUserId: string
 
 /** User leaves a league voluntarily */
 export async function leaveLeague(porraId: string, userId: string): Promise<void> {
-  const porraSnap = await getDoc(doc(db, "porras", porraId));
-  if (!porraSnap.exists()) throw new Error("Liga no encontrada");
-  if (porraSnap.data().createdBy === userId) throw new Error("El creador no puede abandonar la liga. Usa 'Borrar liga'.");
-
+  // Try to remove from apuestas
   await deleteDoc(doc(db, "porras", porraId, "apuestas", userId));
-  await setDoc(doc(db, "users", userId), { leagues: arrayRemove(porraId) }, { merge: true }).catch(() => {});
+  
+  // Try to remove from predicciones
+  await deleteDoc(doc(db, "porras", porraId, "predicciones", userId));
 
-  // Decrement member count atomically
-  await setDoc(doc(db, "porras", porraId), { memberCount: increment(-1) }, { merge: true });
+  // Remove tracking from user doc
+  await setDoc(doc(db, "users", userId), {
+    leagues: arrayRemove(porraId)
+  }, { merge: true });
+
+  // Decrement member count safely
+  await setDoc(doc(db, "porras", porraId), {
+    memberCount: increment(-1)
+  }, { merge: true });
 }
 
 /** Creator deletes the entire league and all bets */
@@ -301,4 +334,34 @@ export async function deletePorra(porraId: string, requesterId: string): Promise
 
   // Delete the porra document
   await deleteDoc(doc(db, "porras", porraId));
+}
+
+// ─── Predicciones (Quiniela) ──────────────────────────────────────────────────
+
+export async function saveMatchPredictions(
+  porraId: string,
+  userId: string,
+  userName: string,
+  userPhoto: string,
+  predictions: Record<string, MatchPrediction>
+): Promise<void> {
+  const ref = doc(db, "porras", porraId, "predicciones", userId);
+  await setDoc(ref, {
+    userId,
+    userName,
+    userPhoto,
+    predictions,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function getUserPredictions(porraId: string, userId: string): Promise<UserPredictions | null> {
+  const snap = await getDoc(doc(db, "porras", porraId, "predicciones", userId));
+  if (!snap.exists()) return null;
+  return snap.data() as UserPredictions;
+}
+
+export async function getAllPredictions(porraId: string): Promise<UserPredictions[]> {
+  const snap = await getDocs(collection(db, "porras", porraId, "predicciones"));
+  return snap.docs.map(d => d.data() as UserPredictions);
 }

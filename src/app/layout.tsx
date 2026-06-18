@@ -17,13 +17,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Porra Mundialista 2026 🏆",
+  title: "Porra Mundial 2026 - Fantasy y Quiniela 🏆",
   description:
-    "La app de porra del Mundial 2026. Elige tus 10 selecciones, crea tu liga con amigos y compite por ser el mejor pronosticador.",
-  keywords: ["mundial 2026", "porra", "fantasy", "fútbol", "FIFA World Cup"],
+    "La mejor plataforma para el Mundial 2026. Juega al Modo Manager eligiendo selecciones, o al Modo Quiniela prediciendo resultados exactos. ¡Compite con amigos!",
+  keywords: ["mundial 2026", "porra", "fantasy", "fútbol", "quiniela", "predicciones", "FIFA World Cup"],
   openGraph: {
-    title: "Porra Mundialista 2026 🏆",
-    description: "Crea tu porra del Mundial 2026 con amigos",
+    title: "Porra Mundial 2026 - Fantasy y Quiniela 🏆",
+    description: "Crea tu liga del Mundial 2026 con amigos. Modos Manager y Predicciones de partidos.",
     type: "website",
   },
 };

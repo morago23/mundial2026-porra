@@ -26,6 +26,8 @@ export default function CrearPorraPage() {
   const [pichichi, setPichichi] = useState("");
   const [guanteOro, setGuanteOro] = useState("");
   const [mejorJoven, setMejorJoven] = useState("");
+  const [enableFantasy, setEnableFantasy] = useState(true);
+  const [enablePredictor, setEnablePredictor] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
@@ -34,26 +36,29 @@ export default function CrearPorraPage() {
   const budgetOk = totalValue <= MAX_BUDGET;
   const teamsOk = selectedTeams.length === MAX_TEAMS;
   const awardsOk = mvp.trim() && pichichi.trim() && guanteOro.trim() && mejorJoven.trim();
-  const canSubmit = budgetOk && teamsOk && awardsOk && porraName.trim();
+  const canSubmit = porraName.trim() && (enableFantasy || enablePredictor);
 
   async function handleCreate() {
     if (!user || !canSubmit) return;
     setSubmitting(true);
     setError("");
     try {
+      const firstBet = enableFantasy ? {
+        teams: selectedTeams,
+        totalValue,
+        mvp: mvp.trim(),
+        pichichi: pichichi.trim(),
+        guanteOro: guanteOro.trim(),
+        mejorJoven: mejorJoven.trim(),
+      } : null;
+
       const id = await createPorra(
         porraName.trim(),
         user.uid,
         user.displayName ?? "Anónimo",
         user.photoURL ?? "",
-        {
-          teams: selectedTeams,
-          totalValue,
-          mvp: mvp.trim(),
-          pichichi: pichichi.trim(),
-          guanteOro: guanteOro.trim(),
-          mejorJoven: mejorJoven.trim(),
-        }
+        firstBet,
+        { enableFantasy, enablePredictor }
       );
       router.push(`/porra/${id}?nuevo=1`);
     } catch (err) {
@@ -106,43 +111,45 @@ export default function CrearPorraPage() {
       </div>
 
       {/* Step indicator */}
-      <div style={{ display: "flex", gap: "8px", marginBottom: "40px" }}>
-        {([1, 2, 3] as Step[]).map((s) => (
-          <div
-            key={s}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              opacity: step >= s ? 1 : 0.4,
-            }}
-          >
+      {enableFantasy && (
+        <div style={{ display: "flex", gap: "8px", marginBottom: "40px" }}>
+          {([1, 2, 3] as Step[]).map((s) => (
             <div
+              key={s}
               style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "50%",
-                background: step > s ? "var(--green)" : step === s ? "var(--gradient-gold)" : "var(--bg-card)",
-                border: "2px solid " + (step >= s ? "var(--gold)" : "var(--border)"),
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 700,
-                fontSize: "0.85rem",
-                color: step >= s ? "#080c1a" : "var(--text-muted)",
-                backgroundImage: step === s ? "var(--gradient-gold)" : step > s ? "none" : "none",
-                backgroundColor: step > s ? "var(--green)" : "var(--bg-card)",
+                gap: "8px",
+                opacity: step >= s ? 1 : 0.4,
               }}
             >
-              {step > s ? "✓" : s}
+              <div
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  background: step > s ? "var(--green)" : step === s ? "var(--gradient-gold)" : "var(--bg-card)",
+                  border: "2px solid " + (step >= s ? "var(--gold)" : "var(--border)"),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  color: step >= s ? "#080c1a" : "var(--text-muted)",
+                  backgroundImage: step === s ? "var(--gradient-gold)" : step > s ? "none" : "none",
+                  backgroundColor: step > s ? "var(--green)" : "var(--bg-card)",
+                }}
+              >
+                {step > s ? "✓" : s}
+              </div>
+              <span style={{ fontSize: "0.85rem", color: step === s ? "var(--text-primary)" : "var(--text-muted)", display: s < 3 ? "block" : undefined }}>
+                {s === 1 ? "Nombre" : s === 2 ? "Equipos" : "Premios"}
+              </span>
+              {s < 3 && <span style={{ color: "var(--border)", margin: "0 4px" }}>→</span>}
             </div>
-            <span style={{ fontSize: "0.85rem", color: step === s ? "var(--text-primary)" : "var(--text-muted)", display: s < 3 ? "block" : undefined }}>
-              {s === 1 ? "Nombre" : s === 2 ? "Equipos" : "Premios"}
-            </span>
-            {s < 3 && <span style={{ color: "var(--border)", margin: "0 4px" }}>→</span>}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Step 1: Nombre ──────────────────────────────────────── */}
       {step === 1 && (
@@ -165,14 +172,45 @@ export default function CrearPorraPage() {
               </span>
             </div>
 
+            <div style={{ marginTop: "24px" }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginBottom: "16px", cursor: "pointer" }}>
+                <input type="checkbox" checked={enableFantasy} onChange={(e) => setEnableFantasy(e.target.checked)} style={{ width: "24px", height: "24px", marginTop: "2px" }} />
+                <div>
+                  <div style={{ fontWeight: 600 }}>Modo Manager (Fantasy)</div>
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Elegir 10 selecciones y predecir los premios con un límite de presupuesto.</div>
+                </div>
+              </label>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "12px", cursor: "pointer" }}>
+                <input type="checkbox" checked={enablePredictor} onChange={(e) => setEnablePredictor(e.target.checked)} style={{ width: "24px", height: "24px", marginTop: "2px" }} />
+                <div>
+                  <div style={{ fontWeight: 600 }}>Modo Predicciones (Quiniela)</div>
+                  <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Adivinar el resultado exacto de todos los partidos del Mundial.</div>
+                </div>
+              </label>
+            </div>
+
+            {!enableFantasy && !enablePredictor && (
+              <p style={{ color: "var(--red)", fontSize: "0.85rem", marginTop: "12px" }}>⚠️ Debes activar al menos un modo de juego.</p>
+            )}
+
             <div style={{ marginTop: "32px", display: "flex", gap: "12px" }}>
-              <button
-                className="btn btn-primary"
-                onClick={() => setStep(2)}
-                disabled={!porraName.trim()}
-              >
-                Siguiente → Elegir equipos
-              </button>
+              {enableFantasy ? (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setStep(2)}
+                  disabled={!canSubmit}
+                >
+                  Siguiente → Elegir equipos
+                </button>
+              ) : (
+                <button
+                  className="btn btn-primary btn-lg"
+                  onClick={handleCreate}
+                  disabled={!canSubmit || submitting}
+                >
+                  {submitting ? "Creando..." : "🏆 Crear Porra"}
+                </button>
+              )}
             </div>
           </div>
 
@@ -274,7 +312,7 @@ export default function CrearPorraPage() {
             <button
               className="btn btn-primary btn-lg"
               onClick={() => setShowConfirm(true)}
-              disabled={!canSubmit || submitting}
+              disabled={!(budgetOk && teamsOk && awardsOk && porraName.trim()) || submitting}
             >
               {submitting ? "Creando..." : "🏆 Crear Porra y Apostar"}
             </button>

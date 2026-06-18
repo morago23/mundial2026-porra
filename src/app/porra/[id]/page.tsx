@@ -5,14 +5,17 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { getPorra, getApuestas, Porra, Apuesta, removeUserFromLeague, leaveLeague, deletePorra } from "@/lib/firebase/firestore";
+import { getPorra, getApuestas, getAllPredictions, Porra, Apuesta, removeUserFromLeague, leaveLeague, deletePorra, updatePorraSettings } from "@/lib/firebase/firestore";
 import { fetchMatches, fetchGroups, mapToMatchResults, mapToGroupStandings } from "@/lib/api/worldcup";
 import { calculateScore } from "@/lib/scoring/calculator";
 import { TEAMS_BY_CODE } from "@/lib/data/teams";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface PlayerScore {
-  apuesta: Apuesta;
+  userId: string;
+  userName: string;
+  userPhoto: string;
+  apuesta: Apuesta | null;
   total: number;
   detail: string[];
 }
@@ -44,9 +47,10 @@ export default function PorraPage() {
   async function load() {
     setLoading(true);
     try {
-      const [p, apuestas, matches, groups] = await Promise.all([
+      const [p, apuestas, predictionsSnap, matches, groups] = await Promise.all([
         getPorra(id),
         getApuestas(id),
+        getAllPredictions(id),
         fetchMatches(),
         fetchGroups(),
       ]);
@@ -56,12 +60,19 @@ export default function PorraPage() {
       const groupStandings = mapToGroupStandings(groups);
       const realAwards = p?.awards ?? {};
 
-      const scored: PlayerScore[] = apuestas.map((a) => {
+      const userIds = new Set([...apuestas.map(a => a.id), ...predictionsSnap.map(p => p.userId)]);
+      const scored: PlayerScore[] = Array.from(userIds).map((uid) => {
+        const apuesta = apuestas.find(a => a.id === uid) || null;
+        const preds = predictionsSnap.find(p => p.userId === uid) || null;
+        const name = apuesta?.userName || preds?.userName || "Anónimo";
+        const photo = apuesta?.userPhoto || preds?.userPhoto || "";
+
         const breakdown = calculateScore(
-          { teams: a.teams, mvp: a.mvp, pichichi: a.pichichi, guanteOro: a.guanteOro, mejorJoven: a.mejorJoven },
+          apuesta ? { teams: apuesta.teams, mvp: apuesta.mvp, pichichi: apuesta.pichichi, guanteOro: apuesta.guanteOro, mejorJoven: apuesta.mejorJoven } : null,
+          preds?.predictions || null,
           matchResults, groupStandings, realAwards
         );
-        return { apuesta: a, total: breakdown.total, detail: breakdown.detail };
+        return { userId: uid, userName: name, userPhoto: photo, apuesta, total: breakdown.total, detail: breakdown.detail };
       });
 
       scored.sort((a, b) => b.total - a.total);
@@ -88,7 +99,7 @@ export default function PorraPage() {
     try {
       if (adminAction.type === "remove" && adminAction.userId) {
         await removeUserFromLeague(id, adminAction.userId, user.uid);
-        setScores((prev) => prev.filter((s) => s.apuesta.id !== adminAction.userId));
+        setScores((prev) => prev.filter((s) => s.userId !== adminAction.userId));
       } else if (adminAction.type === "delete") {
         await deletePorra(id, user.uid);
         router.push("/");
@@ -104,6 +115,22 @@ export default function PorraPage() {
       setActionError(err instanceof Error ? err.message : "Error");
     } finally {
       setActionLoading(false);
+    }
+  }
+
+  async function handleToggleMode(mode: "enableFantasy" | "enablePredictor", value: boolean) {
+    if (!porra) return;
+    const newSettings = { 
+      enableFantasy: porra.settings?.enableFantasy ?? true,
+      enablePredictor: porra.settings?.enablePredictor ?? true,
+      [mode]: value 
+    };
+    try {
+      await updatePorraSettings(id, newSettings);
+      setPorra({ ...porra, settings: newSettings });
+    } catch (err) {
+      console.error(err);
+      alert("Error al actualizar la configuración");
     }
   }
 
@@ -128,7 +155,7 @@ export default function PorraPage() {
     );
   }
 
-  const myScore = scores.find((s) => s.apuesta.id === user?.uid);
+  const myScore = scores.find((s) => s.userId === user?.uid);
   const hasJoined = !!myScore;
 
   return (
@@ -150,14 +177,24 @@ export default function PorraPage() {
               </div>
             </div>
             <div className="league-hero-actions">
-              {!hasJoined && user && (
+              {!hasJoined && user && porra.settings?.enableFantasy !== false && (
                 <Link href={`/porra/${id}/apostar`} className="btn btn-primary">
                   ⚽ Hacer mi apuesta
                 </Link>
               )}
-              {!hasJoined && !user && (
+              {!hasJoined && !user && porra.settings?.enableFantasy !== false && (
                 <Link href={`/porra/${id}/apostar`} className="btn btn-primary">
                   🔗 Unirse a la porra
+                </Link>
+              )}
+              {porra.settings?.enablePredictor !== false && user && (
+                <Link href={`/porra/${id}/predicciones`} className="btn btn-primary">
+                  🎯 Mis Predicciones
+                </Link>
+              )}
+              {porra.settings?.enablePredictor !== false && !user && (
+                <Link href={`/porra/${id}/predicciones`} className="btn btn-primary">
+                  🎯 Hacer Predicciones
                 </Link>
               )}
               <button className="btn btn-secondary btn-sm" onClick={copyLink}>
@@ -229,28 +266,39 @@ export default function PorraPage() {
               </div>
 
               {scores.map((s, idx) => {
-                const isMe = s.apuesta.id === user?.uid;
+                const isMe = s.userId === user?.uid;
                 return (
                   <div
-                    key={s.apuesta.id}
+                    key={s.userId}
                     className={`league-row ${isMe ? "league-row-me" : ""}`}
                     onClick={() => setSelectedPlayer(s)}
                   >
                     <div className="league-rank">
                       {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : <span style={{ fontWeight: 700, color: "var(--text-muted)" }}>{idx + 1}</span>}
                     </div>
-                    {s.apuesta.userPhoto ? (
+                    {s.userPhoto ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.apuesta.userPhoto} alt="" className="league-avatar" referrerPolicy="no-referrer" />
+                      <img src={s.userPhoto} alt="" className="league-avatar" referrerPolicy="no-referrer" />
                     ) : (
-                      <div className="league-avatar league-avatar-initials">{s.apuesta.userName.charAt(0).toUpperCase()}</div>
+                      <div className="league-avatar league-avatar-initials">{s.userName.charAt(0).toUpperCase()}</div>
                     )}
                     <div className="league-info">
                       <div className="league-name">
-                        {s.apuesta.userName}
+                        {s.userName}
                         {isMe && <span className="league-you-badge">tú</span>}
-                        {porra.createdBy === s.apuesta.id && <span className="league-admin-badge">admin</span>}
                       </div>
+                      {s.apuesta ? (
+                        <div className="league-teams">
+                          {s.apuesta.teams.slice(0, 5).map((code) => (
+                            <span key={code} title={TEAMS_BY_CODE[code]?.name}>{TEAMS_BY_CODE[code]?.flag ?? "🏳️"}</span>
+                          ))}
+                          {s.apuesta.teams.length > 5 && <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>+{s.apuesta.teams.length - 5}</span>}
+                        </div>
+                      ) : (
+                        <div className="league-teams">
+                          <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Solo predicciones</span>
+                        </div>
+                      )}
                     </div>
                     <div className="league-score">
                       <div className="league-pts">{s.total.toFixed(1)}</div>
@@ -270,16 +318,16 @@ export default function PorraPage() {
         <div className="modal-overlay" onClick={() => setSelectedPlayer(null)}>
           <div className="modal modal-player animate-in" onClick={(e) => e.stopPropagation()}>
             <div className="modal-player-header">
-              {selectedPlayer.apuesta.userPhoto ? (
+              {selectedPlayer.userPhoto ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={selectedPlayer.apuesta.userPhoto} alt="" className="modal-player-avatar" referrerPolicy="no-referrer" />
+                <img src={selectedPlayer.userPhoto} alt="" className="modal-player-avatar" referrerPolicy="no-referrer" />
               ) : (
                 <div className="modal-player-avatar modal-player-avatar-initials">
-                  {selectedPlayer.apuesta.userName.charAt(0).toUpperCase()}
+                  {selectedPlayer.userName.charAt(0).toUpperCase()}
                 </div>
               )}
               <div>
-                <div className="modal-player-name">{selectedPlayer.apuesta.userName}</div>
+                <h2 className="modal-title">{selectedPlayer.userName}</h2>
                 <div className="modal-player-pts">
                   <span style={{ color: "var(--gold)", fontWeight: 900, fontSize: "1.4rem" }}>{selectedPlayer.total.toFixed(1)}</span>
                   <span style={{ color: "var(--text-muted)", marginLeft: "4px" }}>puntos</span>
@@ -289,33 +337,23 @@ export default function PorraPage() {
             </div>
 
             <div className="modal-player-body">
-              {/* Teams */}
-              <div className="modal-section">
-                <div className="modal-section-title">🌍 Equipos seleccionados</div>
-                <div className="modal-teams-grid">
-                  {selectedPlayer.apuesta.teams.map((code) => {
-                    const t = TEAMS_BY_CODE[code];
-                    return (
-                      <div key={code} className="modal-team-item">
-                        <span className="modal-team-flag">{t?.flag ?? "🏳️"}</span>
-                        <span className="modal-team-name">{t?.name ?? code}</span>
-                        <span className="modal-team-value">{t?.value ?? "?"}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Predictions */}
-              <div className="modal-section">
-                <div className="modal-section-title">🎯 Predicciones especiales</div>
-                <div className="modal-predictions">
-                  <div className="modal-prediction-item"><span>🌟 MVP</span><strong>{selectedPlayer.apuesta.mvp || "—"}</strong></div>
-                  <div className="modal-prediction-item"><span>⚽ Pichichi</span><strong>{selectedPlayer.apuesta.pichichi || "—"}</strong></div>
-                  <div className="modal-prediction-item"><span>🧤 Guante de Oro</span><strong>{selectedPlayer.apuesta.guanteOro || "—"}</strong></div>
-                  <div className="modal-prediction-item"><span>🌱 Mejor Joven</span><strong>{selectedPlayer.apuesta.mejorJoven || "—"}</strong></div>
-                </div>
-              </div>
+              {selectedPlayer.apuesta && (
+                <>
+                  <div style={{ marginBottom: "16px", display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {selectedPlayer.apuesta.teams.map((code) => (
+                      <span key={code} style={{ background: "var(--bg-secondary)", padding: "4px 8px", borderRadius: "6px", fontSize: "0.85rem", border: "1px solid var(--border)" }}>
+                        {TEAMS_BY_CODE[code]?.flag} {TEAMS_BY_CODE[code]?.name}
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ marginBottom: "20px", fontSize: "0.85rem", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <div>🌟 MVP: <strong>{selectedPlayer.apuesta.mvp || "—"}</strong></div>
+                    <div>⚽ Pichichi: <strong>{selectedPlayer.apuesta.pichichi || "—"}</strong></div>
+                    <div>🧤 Guante Oro: <strong>{selectedPlayer.apuesta.guanteOro || "—"}</strong></div>
+                    <div>🌱 Mejor Joven: <strong>{selectedPlayer.apuesta.mejorJoven || "—"}</strong></div>
+                  </div>
+                </>
+              )}
 
               {/* Points breakdown */}
               <div className="modal-section">
@@ -337,17 +375,20 @@ export default function PorraPage() {
               </div>
 
               {/* Admin remove button */}
-              {isAdmin && selectedPlayer.apuesta.id !== user?.uid && (
-                <button
-                  className="btn btn-sm"
-                  style={{ width: "100%", justifyContent: "center", background: "rgba(232,51,74,0.08)", border: "1px solid rgba(232,51,74,0.3)", color: "var(--red)", marginTop: "8px" }}
-                  onClick={() => {
-                    setAdminAction({ type: "remove", userId: selectedPlayer.apuesta.id, name: selectedPlayer.apuesta.userName });
-                    setSelectedPlayer(null);
-                  }}
-                >
-                  🗑️ Eliminar de la liga
-                </button>
+              {isAdmin && selectedPlayer.userId !== user?.uid && (
+                <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--border)", textAlign: "center" }}>
+                  <button 
+                    className="btn btn-sm" 
+                    style={{ background: "transparent", color: "var(--red)", border: "1px solid rgba(232,51,74,0.3)" }}
+                    onClick={() => {
+                      setAdminAction({ type: "remove", userId: selectedPlayer.userId, name: selectedPlayer.userName });
+                      setShowAdmin(false);
+                      setSelectedPlayer(null);
+                    }}
+                  >
+                    Expulsar jugador
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -367,6 +408,18 @@ export default function PorraPage() {
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ padding: "16px", borderRadius: "12px", border: "1px solid var(--border)", fontSize: "0.9rem" }}>
+                <h3 style={{ marginBottom: "12px", fontSize: "1rem" }}>Modos de Juego Activos</h3>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", cursor: "pointer" }}>
+                  <input type="checkbox" checked={porra.settings?.enableFantasy ?? true} onChange={(e) => handleToggleMode("enableFantasy", e.target.checked)} style={{ width: "16px", height: "16px" }} />
+                  Modo Manager (Equipos y presupuesto)
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                  <input type="checkbox" checked={porra.settings?.enablePredictor ?? true} onChange={(e) => handleToggleMode("enablePredictor", e.target.checked)} style={{ width: "16px", height: "16px" }} />
+                  Modo Quiniela (Predicción de partidos)
+                </label>
+              </div>
+
               <div style={{ padding: "16px", borderRadius: "12px", border: "1px solid var(--border)", fontSize: "0.9rem", color: "var(--text-secondary)" }}>
                 Para eliminar un jugador específico, pulsa en su nombre en la clasificación y usa el botón rojo.
               </div>
