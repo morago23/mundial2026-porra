@@ -177,18 +177,38 @@ export async function fetchGroups(): Promise<WCGroup[]> {
 export function mapToMatchResults(matches: WCMatch[]): MatchResult[] {
   return matches.map((m) => {
     let stage: MatchResult["stage"] = "GROUP";
-    const stageRaw = (m.stage ?? "").toLowerCase();
-    if (stageRaw.includes("final") && stageRaw.includes("third")) stage = "THIRD";
-    else if (stageRaw.includes("final")) stage = "FINAL";
-    else if (stageRaw.includes("semi")) stage = "SF";
-    else if (stageRaw.includes("quarter")) stage = "QF";
-    else if (stageRaw.includes("round of 16") || stageRaw.includes("octavo")) stage = "R16";
-    else if (stageRaw.includes("round of 32") || stageRaw.includes("32avos")) stage = "R32";
+    const stageRaw = (m.stage ?? "").toLowerCase().trim();
+
+    // Order matters! Check most specific patterns first.
+    // "semi-final" and "quarter-final" both contain "final",
+    // so we must check them BEFORE the generic "final" check.
+    if (stageRaw.includes("third") || stageRaw === "3rd place") {
+      stage = "THIRD";
+    } else if (stageRaw.includes("semi") || stageRaw === "sf") {
+      stage = "SF";
+    } else if (stageRaw.includes("quarter") || stageRaw === "qf") {
+      stage = "QF";
+    } else if (stageRaw.includes("round of 16") || stageRaw.includes("octavo") || stageRaw === "r16" || stageRaw === "last 16") {
+      stage = "R16";
+    } else if (stageRaw.includes("round of 32") || stageRaw.includes("32avos") || stageRaw === "r32" || stageRaw === "last 32") {
+      stage = "R32";
+    } else if (stageRaw.includes("final") || stageRaw === "f") {
+      // This MUST be last among knockout checks, since "semi-final", "quarter-final" etc. also contain "final"
+      stage = "FINAL";
+    } else if (stageRaw.includes("group") || stageRaw === "" || stageRaw.match(/^[a-l]$/)) {
+      stage = "GROUP";
+    } else {
+      // Unknown stage — log it so we can add it later
+      console.warn(`[worldcup.ts] Unknown stage: "${m.stage}" — treating as GROUP`);
+    }
 
     let status: MatchResult["status"] = "SCHEDULED";
-    const statusRaw = (m.status ?? "").toLowerCase();
-    if (statusRaw === "finished" || statusRaw === "ft") status = "FINISHED";
-    else if (statusRaw === "live" || statusRaw === "in_play") status = "LIVE";
+    const statusRaw = (m.status ?? "").toLowerCase().trim();
+    if (statusRaw === "finished" || statusRaw === "ft" || statusRaw === "completed" || statusRaw === "full-time" || statusRaw === "played" || statusRaw === "aet" || statusRaw === "pen") {
+      status = "FINISHED";
+    } else if (statusRaw === "live" || statusRaw === "in_play" || statusRaw === "in play" || statusRaw === "1st half" || statusRaw === "2nd half" || statusRaw === "half-time" || statusRaw === "extra time") {
+      status = "LIVE";
+    }
 
     return {
       id: m.id.toString(),
