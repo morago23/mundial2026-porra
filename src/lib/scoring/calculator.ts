@@ -158,6 +158,11 @@ export function calculateScore(
   }
 
   // --- KNOCKOUT STAGE POINTS ---
+  // Points are awarded as soon as a team QUALIFIES for a round (i.e. appears in
+  // the bracket), not only when the match finishes. This way, if a team has
+  // reached the semi-finals but the match hasn't been played yet, they still
+  // get the 8 SF points.
+  // Exception: THIRD place and CHAMPION bonus require the match to finish.
   const stagePoints: Record<string, number> = {
     R32: PTS.R32,
     R16: PTS.R16,
@@ -176,50 +181,68 @@ export function calculateScore(
     THIRD: "3er puesto",
   };
 
+  // Track which teams have already been awarded points for each stage
+  // to avoid double-counting
+  const awardedStageTeams = new Set<string>();
+
   for (const match of matches) {
-    if (match.status !== "FINISHED") continue;
     if (match.stage === "GROUP") continue;
-    if (match.homeScore === null || match.awayScore === null) continue;
 
     const stagePts = stagePoints[match.stage] ?? 0;
     const stageName = stageNames[match.stage] ?? match.stage;
 
-    // For THIRD place match, only the winner gets points
+    // For THIRD place match, only the winner gets points (requires FINISHED)
     if (match.stage === "THIRD") {
+      if (match.status !== "FINISHED" || match.homeScore === null || match.awayScore === null) continue;
       let thirdWinner: string | null = null;
       if (match.homeScore! > match.awayScore!) thirdWinner = match.homeTeam;
       else if (match.awayScore! > match.homeScore!) thirdWinner = match.awayTeam;
       else if (match.penaltyWinner) thirdWinner = match.penaltyWinner;
 
       if (thirdWinner && selectedTeams.has(thirdWinner)) {
-        breakdown.knockoutPoints += stagePts;
-        breakdown.detail.push(
-          `+${stagePts}p ${stageName} ${TEAMS_BY_CODE[thirdWinner]?.name ?? thirdWinner}`
-        );
+        const key = `${match.stage}_${thirdWinner}`;
+        if (!awardedStageTeams.has(key)) {
+          awardedStageTeams.add(key);
+          breakdown.knockoutPoints += stagePts;
+          breakdown.detail.push(
+            `+${stagePts}p ${stageName} ${TEAMS_BY_CODE[thirdWinner]?.name ?? thirdWinner}`
+          );
+        }
       }
     } else {
-      // All other knockout rounds: both teams that PLAYED get points
-      if (selectedTeams.has(match.homeTeam)) {
-        breakdown.knockoutPoints += stagePts;
-        breakdown.detail.push(
-          `+${stagePts}p ${stageName} ${TEAMS_BY_CODE[match.homeTeam]?.name ?? match.homeTeam}`
-        );
+      // All other knockout rounds: teams get points for REACHING this stage
+      // (regardless of whether the match has been played yet)
+      const homeValid = match.homeTeam && match.homeTeam !== "TBD";
+      const awayValid = match.awayTeam && match.awayTeam !== "TBD";
+
+      if (homeValid && selectedTeams.has(match.homeTeam)) {
+        const key = `${match.stage}_${match.homeTeam}`;
+        if (!awardedStageTeams.has(key)) {
+          awardedStageTeams.add(key);
+          breakdown.knockoutPoints += stagePts;
+          breakdown.detail.push(
+            `+${stagePts}p ${stageName} ${TEAMS_BY_CODE[match.homeTeam]?.name ?? match.homeTeam}`
+          );
+        }
       }
-      if (selectedTeams.has(match.awayTeam)) {
-        breakdown.knockoutPoints += stagePts;
-        breakdown.detail.push(
-          `+${stagePts}p ${stageName} ${TEAMS_BY_CODE[match.awayTeam]?.name ?? match.awayTeam}`
-        );
+      if (awayValid && selectedTeams.has(match.awayTeam)) {
+        const key = `${match.stage}_${match.awayTeam}`;
+        if (!awardedStageTeams.has(key)) {
+          awardedStageTeams.add(key);
+          breakdown.knockoutPoints += stagePts;
+          breakdown.detail.push(
+            `+${stagePts}p ${stageName} ${TEAMS_BY_CODE[match.awayTeam]?.name ?? match.awayTeam}`
+          );
+        }
       }
     }
 
-    // Champion bonus
-    if (match.stage === "FINAL" && match.homeScore !== null && match.awayScore !== null) {
+    // Champion bonus (requires FINISHED)
+    if (match.stage === "FINAL" && match.status === "FINISHED" && match.homeScore !== null && match.awayScore !== null) {
       let winner: string | null = null;
       if (match.homeScore > match.awayScore) winner = match.homeTeam;
       else if (match.awayScore > match.homeScore) winner = match.awayTeam;
       else if (match.penaltyWinner) winner = match.penaltyWinner;
-      // TODO: if no penaltyWinner metadata is available and scores are equal, winner remains null
 
       if (winner && selectedTeams.has(winner)) {
         breakdown.knockoutPoints += PTS.CHAMPION;
